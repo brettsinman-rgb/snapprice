@@ -159,7 +159,7 @@ export default function ResultsClient({ sessionId }: { sessionId: string }) {
     });
 
     return sorted.map(({ effectivePrice, index, ...rest }) => rest);
-  }, [session, store, currency, condition, sortMode]);
+  }, [session, store, currency, condition, sortMode, selectedRegions]);
 
   if (loading) {
     return (

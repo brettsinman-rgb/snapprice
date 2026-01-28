@@ -170,6 +170,7 @@ export async function POST(request: Request) {
 
     const finalResults = await Promise.all(
       sorted.map(async (item) => {
+        if (!item.productUrl) return item;
         const resolvedUrl = shouldResolveUrl(item.productUrl)
           ? await resolveFinalUrl(item.productUrl)
           : item.productUrl;

@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -185,9 +186,13 @@ export default function UploadCapture() {
         <div className="flex flex-col items-end gap-4">
           <div className="w-full max-w-[380px] overflow-hidden rounded-2xl border border-emerald-200/10 bg-white">
             {preview ? (
-              <img
+              <Image
                 src={preview}
                 alt="Preview"
+                width={380}
+                height={340}
+                sizes="380px"
+                unoptimized
                 className="h-[340px] w-[380px] object-contain bg-white"
               />
             ) : (
