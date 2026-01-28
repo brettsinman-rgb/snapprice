@@ -72,7 +72,7 @@ export function dedupeResults<T extends NormalizedResult>(results: T[]): T[] {
   return deduped;
 }
 
-export function sortResults<T extends NormalizedResult>(results: T[], mode: 'cheapest' | 'expensive' | 'best') {
+export function sortResults(results: NormalizedResult[], mode: 'cheapest' | 'expensive' | 'best') {
   const withEffective = results.map((result, index) => ({
     ...result,
     effectivePrice: result.price + (result.shippingPrice ?? 0),
@@ -93,5 +93,5 @@ export function sortResults<T extends NormalizedResult>(results: T[], mode: 'che
     return a.index - b.index;
   });
 
-  return sorted.map(({ effectivePrice, index, ...rest }) => rest as T);
+  return sorted.map(({ effectivePrice, index, ...rest }) => rest);
 }
