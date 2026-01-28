@@ -179,6 +179,7 @@ export async function POST(request: Request) {
     );
 
     const filteredResults = finalResults.filter((item) => {
+      if (!item.productUrl) return false;
       try {
         const parsed = new URL(item.productUrl);
         if (parsed.hostname.includes('google.com') && parsed.pathname.includes('/search')) {
