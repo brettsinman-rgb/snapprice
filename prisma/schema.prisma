@@ -1,0 +1,59 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model SearchSession {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  imageUrl  String
+  imageHash String
+  query     String?
+  country   String?
+  userAgent String?
+  ipHash    String?
+  status    String
+  results   SearchResult[]
+  clicks    ClickEvent[]
+}
+
+model SearchResult {
+  id           String   @id @default(cuid())
+  sessionId    String
+  title        String
+  brand        String?
+  image        String
+  store        String
+  price        Float
+  currency     String
+  shippingPrice Float?
+  condition    String?
+  availability String?
+  rating       Float?
+  reviewCount  Int?
+  marketplace  String?
+  productUrl   String
+  matchScore   Float
+  rawProvider  String
+  rawJson      String
+  session      SearchSession @relation(fields: [sessionId], references: [id])
+  clicks       ClickEvent[]
+
+  @@index([sessionId])
+}
+
+model ClickEvent {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  sessionId String
+  resultId  String
+  session   SearchSession @relation(fields: [sessionId], references: [id])
+  result    SearchResult  @relation(fields: [resultId], references: [id])
+
+  @@index([sessionId])
+  @@index([resultId])
+}
