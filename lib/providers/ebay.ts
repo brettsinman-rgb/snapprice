@@ -74,7 +74,7 @@ async function searchByMarketplace(query: string, marketplaceId: string, token: 
   if (!response.ok) return [];
   const json = await response.json();
   const items = Array.isArray(json.itemSummaries) ? json.itemSummaries : [];
-  return items.map((item) => normalizeItem(item, marketplaceId)).filter(Boolean) as ProviderCandidate[];
+  return items.map((item: any) => normalizeItem(item, marketplaceId)).filter(Boolean) as ProviderCandidate[];
 }
 
 function normalizeItem(item: any, marketplaceId: string): ProviderCandidate | null {
@@ -135,7 +135,7 @@ export const ebayProvider: SearchProvider = {
       if (!response.ok) continue;
       const json = await response.json();
       const items = Array.isArray(json.itemSummaries) ? json.itemSummaries : [];
-      results.push(...(items.map((item) => normalizeItem(item, market)).filter(Boolean) as ProviderCandidate[]));
+      results.push(...(items.map((item: any) => normalizeItem(item, market)).filter(Boolean) as ProviderCandidate[]));
     }
 
     return results;
