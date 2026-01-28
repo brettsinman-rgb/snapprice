@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 export default function UploadCapture() {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
+  const [fileName, setFileName] = useState('');
   const [preview, setPreview] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [manufacturer, setManufacturer] = useState('Any');
@@ -20,6 +21,7 @@ export default function UploadCapture() {
     const selected = event.target.files?.[0] ?? null;
     setError(null);
     setFile(selected);
+    setFileName(selected?.name ?? '');
     setPreview(selected ? URL.createObjectURL(selected) : null);
   };
 
@@ -70,13 +72,19 @@ export default function UploadCapture() {
         <div className="flex flex-col gap-4">
           <label className="inline-flex cursor-pointer flex-col items-start gap-2">
             <span className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-100/70">Upload or capture</span>
+            <span className="inline-flex items-center justify-center rounded-full bg-lime-300/90 px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.2em] text-slate-900 hover:bg-lime-200">
+              Choose file
+            </span>
             <input
               type="file"
               accept="image/png,image/jpeg,image/jpg,image/webp"
               capture="environment"
               onChange={handleFileChange}
-              className="block text-sm text-emerald-50 file:mr-4 file:rounded-full file:border-0 file:bg-lime-300/90 file:px-5 file:py-2.5 file:text-xs file:font-semibold file:uppercase file:tracking-[0.2em] file:text-slate-900 hover:file:bg-lime-200"
+              className="sr-only"
             />
+            <span className="text-xs text-emerald-100/70 md:hidden">
+              {fileName || 'No file chosen'}
+            </span>
           </label>
           <label className="flex flex-col gap-2">
             <span className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-100/70">Or type an OEM part number</span>
@@ -196,7 +204,7 @@ export default function UploadCapture() {
                 className="h-[340px] w-[380px] object-contain bg-white"
               />
             ) : (
-              <div className="flex h-[340px] w-[380px] items-center justify-center bg-white text-xs uppercase tracking-[0.2em] text-slate-400">
+              <div className="flex h-[340px] w-[380px] items-center justify-center text-center bg-white text-xs uppercase tracking-[0.2em] text-slate-400">
                 No image selected
               </div>
             )}
@@ -212,9 +220,6 @@ export default function UploadCapture() {
       </div>
       <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-emerald-100/60">
         <span>Tips: Use a clear photo and include the OEM part number on packaging when possible.</span>
-        <span className="rounded-full border border-emerald-200/20 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-emerald-100/70">
-          Powered by eBay, Amazon, AliExpress
-        </span>
       </div>
       {error && <p className="mt-3 text-sm text-red-300">{error}</p>}
     </div>
