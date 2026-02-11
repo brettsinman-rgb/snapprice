@@ -1,7 +1,56 @@
 import Image from 'next/image';
 import UploadCapture from '@/app/components/UploadCapture';
+import { prisma } from '@/lib/db';
 
-export default function Home() {
+type PreviousSearchItem = {
+  id: string;
+  createdAt: Date;
+  title: string;
+  image: string;
+  productUrl: string;
+};
+
+async function getPreviousSearches(): Promise<PreviousSearchItem[]> {
+  try {
+    const sessions = await prisma.searchSession.findMany({
+      where: { status: 'complete' },
+      orderBy: { createdAt: 'desc' },
+      take: 8,
+      include: {
+        results: {
+          take: 1,
+          orderBy: [{ matchScore: 'desc' }, { price: 'asc' }],
+          select: {
+            id: true,
+            title: true,
+            image: true,
+            productUrl: true
+          }
+        }
+      }
+    });
+
+    return sessions
+      .map((session) => {
+        const firstResult = session.results[0];
+        if (!firstResult?.productUrl) return null;
+        return {
+          id: firstResult.id,
+          createdAt: session.createdAt,
+          title: firstResult.title,
+          image: firstResult.image,
+          productUrl: firstResult.productUrl
+        };
+      })
+      .filter((item): item is PreviousSearchItem => Boolean(item));
+  } catch {
+    return [];
+  }
+}
+
+export default async function Home() {
+  const previousSearches = await getPreviousSearches();
+
   return (
     <main className="min-h-screen px-6 py-14">
       <div className="mx-auto max-w-6xl">
@@ -25,6 +74,54 @@ export default function Home() {
               <UploadCapture />
             </div>
           </div>
+          {previousSearches.length > 0 ? (
+            <section className="rounded-3xl border border-emerald-200/10 bg-white/5 px-6 py-8 shadow-soft fade-up fade-up-delay-1">
+              <div className="mb-6 flex items-end justify-between gap-4">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-100/70">
+                    Previous searches
+                  </p>
+                  <h2 className="mt-2 text-2xl font-semibold text-white">Recent product matches</h2>
+                </div>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {previousSearches.map((item) => (
+                  <article
+                    key={item.id}
+                    className="flex h-full flex-col overflow-hidden rounded-2xl border border-emerald-200/10 bg-slate-900/50"
+                  >
+                    <div className="relative h-36 w-full bg-white">
+                      <Image
+                        src={item.image}
+                        alt={item.title}
+                        fill
+                        sizes="(max-width: 768px) 100vw, 25vw"
+                        className="object-contain p-4"
+                      />
+                    </div>
+                    <div className="flex flex-1 flex-col gap-3 p-4">
+                      <h3 className="line-clamp-2 text-sm font-semibold text-emerald-50">{item.title}</h3>
+                      <p className="text-[11px] text-emerald-100/60">
+                        {new Intl.DateTimeFormat(undefined, {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric'
+                        }).format(item.createdAt)}
+                      </p>
+                      <a
+                        href={item.productUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-auto inline-flex items-center justify-center rounded-full bg-lime-300/90 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-900 transition hover:bg-lime-200"
+                      >
+                        View listing
+                      </a>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
+          ) : null}
           <div className="rounded-3xl border border-emerald-200/10 bg-white/5 px-6 py-10 shadow-soft fade-up fade-up-delay-1">
             <div className="mx-auto max-w-3xl text-center">
               <p className="display-font text-xl font-semibold text-white md:text-2xl">

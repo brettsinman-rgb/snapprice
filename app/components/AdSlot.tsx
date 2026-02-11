@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import clsx from 'clsx';
 
-export default function AdSlot({ size = '300x250' }: { size?: string }) {
+export default function AdSlot({ size = '300x600' }: { size?: string }) {
   useEffect(() => {
     console.info('Ad slot impression', { size });
   }, [size]);

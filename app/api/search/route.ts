@@ -70,7 +70,6 @@ export async function POST(request: Request) {
   const file = formData.get('image');
   const query = String(formData.get('query') ?? '').trim();
   const country = String(formData.get('country') ?? '').trim();
-  const forceRefresh = formData.get('forceRefresh') === 'true';
 
   if ((!file || !(file instanceof File)) && !query) {
     return NextResponse.json({ error: 'Provide an image or a search query.' }, { status: 400 });
@@ -94,21 +93,6 @@ export async function POST(request: Request) {
   const imageHash = buffer ? hashBuffer(buffer) : hashString(`text:${query.toLowerCase()}`);
 
   const demoMode = false;
-
-  const existing = await prisma.searchSession.findFirst({
-    where: {
-      imageHash,
-      createdAt: {
-        gt: new Date(Date.now() - 24 * 60 * 60 * 1000)
-      },
-      status: 'complete'
-    },
-    orderBy: { createdAt: 'desc' }
-  });
-
-  if (existing && !forceRefresh) {
-    return NextResponse.json({ sessionId: existing.id, reused: true });
-  }
 
   const origin = process.env.NEXT_PUBLIC_BASE_URL ?? new URL(request.url).origin;
   let imageUrl = `${origin}/placeholder.svg`;
@@ -195,7 +179,7 @@ export async function POST(request: Request) {
 
     if (resultsToSave.length === 0) {
       await prisma.searchSession.update({ where: { id: session.id }, data: { status: 'empty' } });
-      return NextResponse.json({ sessionId: session.id, reused: false });
+      return NextResponse.json({ sessionId: session.id });
     }
 
     const rawLookup = new Map<string, unknown>();
@@ -231,7 +215,7 @@ export async function POST(request: Request) {
 
     await prisma.searchSession.update({ where: { id: session.id }, data: { status: 'complete' } });
 
-    return NextResponse.json({ sessionId: session.id, reused: false });
+    return NextResponse.json({ sessionId: session.id });
   } catch (error) {
     await prisma.searchSession.update({ where: { id: session.id }, data: { status: 'failed' } });
     return NextResponse.json({ error: 'Search provider failed. Please try again.' }, { status: 502 });

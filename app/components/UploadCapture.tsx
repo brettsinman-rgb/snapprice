@@ -11,9 +11,150 @@ export default function UploadCapture() {
   const [preview, setPreview] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [manufacturer, setManufacturer] = useState('Any');
-  const [forceRefresh, setForceRefresh] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const manufacturerGroups = [
+    {
+      label: 'Standard',
+      options: [
+        'Any',
+        'Acura',
+        'Alfa Romeo',
+        'Audi',
+        'BMW',
+        'Buick',
+        'Cadillac',
+        'Chevrolet',
+        'Chrysler',
+        'Citroën',
+        'Changan',
+        'Chery',
+        'Dongfeng',
+        'Dodge',
+        'Fiat',
+        'Foton',
+        'Ford',
+        'GAC',
+        'Geely',
+        'Great Wall',
+        'Genesis',
+        'GMC',
+        'Haval',
+        'Hongqi',
+        'Honda',
+        'Hyundai',
+        'Infiniti',
+        'JAC',
+        'Jetour',
+        'Jaguar',
+        'Jeep',
+        'Leapmotor',
+        'Li Auto',
+        'Lynk & Co',
+        'Kia',
+        'Maxus',
+        'MG',
+        'NIO',
+        'Ora',
+        'Lexus',
+        'Land Rover',
+        'Lincoln',
+        'Roewe',
+        'Mazda',
+        'Mercedes-Benz',
+        'Mini',
+        'Polestar',
+        'Mitsubishi',
+        'XPeng',
+        'Zeekr',
+        'Zotye',
+        'Wuling',
+        'Nissan',
+        'BYD',
+        'BAIC',
+        'Bestune',
+        'Peugeot',
+        'Porsche',
+        'Ram',
+        'Renault',
+        'Subaru',
+        'Tank',
+        'Suzuki',
+        'Tesla',
+        'Voyah',
+        'Toyota',
+        'Volkswagen',
+        'Volvo'
+      ]
+    },
+    {
+      label: 'Super / Hypercar',
+      options: [
+        'Aston Martin',
+        'Bentley',
+        'Bugatti',
+        'Ferrari',
+        'Koenigsegg',
+        'Lamborghini',
+        'McLaren',
+        'Pagani',
+        'Rimac',
+        'SSC',
+        'Zenvo',
+        'Gordon Murray',
+        'Hennessey',
+        'Lotus',
+        'Maserati',
+        'Pininfarina'
+      ]
+    },
+    {
+      label: 'Classic Cars',
+      options: [
+        'AC',
+        'Abarth',
+        'Alvis',
+        'Armstrong Siddeley',
+        'Auburn',
+        'Austin-Healey',
+        'Auto Union',
+        'Borgward',
+        'Bristol',
+        'Checker',
+        'Cord',
+        'Daimler',
+        'DeSoto',
+        'Duesenberg',
+        'Facel Vega',
+        'Frazer',
+        'Hudson',
+        'Hupmobile',
+        'Jensen',
+        'Kaiser',
+        'Lancia',
+        'MGA',
+        'MGB',
+        'Morris',
+        'Nash',
+        'NSU',
+        'Opel',
+        'Packard',
+        'Pierce-Arrow',
+        'Rambler',
+        'Reliant',
+        'Riley',
+        'Singer',
+        'Sunbeam',
+        'Talbot',
+        'Triumph',
+        'Wolseley'
+      ]
+    },
+    {
+      label: 'Defunct / Discontinued',
+      options: ['Daewoo', 'Eagle', 'Geo', 'Holden', 'Hummer', 'Mercury', 'Oldsmobile', 'Pontiac', 'Plymouth', 'Rover', 'Saab', 'Saturn', 'Scion']
+    }
+  ];
 
   const isReady = useMemo(() => !loading && (Boolean(file) || query.trim().length > 0), [file, query, loading]);
 
@@ -46,7 +187,6 @@ export default function UploadCapture() {
         manufacturer !== 'Any' ? `${manufacturer} ${query.trim()}` : query.trim();
       formData.append('query', composedQuery);
     }
-    if (forceRefresh) formData.append('forceRefresh', 'true');
 
     try {
       const response = await fetch('/api/search', { method: 'POST', body: formData });
@@ -103,92 +243,16 @@ export default function UploadCapture() {
               onChange={(event) => setManufacturer(event.target.value)}
               className="select-cta w-full rounded-2xl border border-emerald-200/20 bg-slate-900/60 px-4 py-3 text-sm text-emerald-50"
             >
-              {[
-                'Any',
-                'Acura',
-                'Alfa Romeo',
-                'Audi',
-                'BMW',
-                'Buick',
-                'Cadillac',
-                'Chevrolet',
-                'Chrysler',
-                'Citroën',
-                'Dodge',
-                'Fiat',
-                'Ford',
-                'Genesis',
-                'GMC',
-                'Honda',
-                'Hyundai',
-                'Infiniti',
-                'Jaguar',
-                'Jeep',
-                'Kia',
-                'Lexus',
-                'Land Rover',
-                'Lincoln',
-                'Mazda',
-                'Mercedes-Benz',
-                'Mini',
-                'Mitsubishi',
-                'Nissan',
-                'Peugeot',
-                'Porsche',
-                'Ram',
-                'Renault',
-                'Subaru',
-                'Suzuki',
-                'Tesla',
-                'Toyota',
-                'Volkswagen',
-                'Volvo',
-                'Super / Hypercar',
-                'Aston Martin',
-                'Bentley',
-                'Bugatti',
-                'Ferrari',
-                'Koenigsegg',
-                'Lamborghini',
-                'McLaren',
-                'Pagani',
-                'Rimac',
-                'SSC',
-                'Zenvo',
-                'Gordon Murray',
-                'Hennessey',
-                'Lotus',
-                'Maserati',
-                'Pininfarina',
-                'Defunct / Discontinued',
-                'Daewoo',
-                'Eagle',
-                'Geo',
-                'Holden',
-                'Hummer',
-                'Mercury',
-                'Oldsmobile',
-                'Pontiac',
-                'Plymouth',
-                'Rover',
-                'Saab',
-                'Saturn',
-                'Scion'
-              ].map((brand) => (
-                <option key={brand} value={brand}>
-                  {brand}
-                </option>
+              {manufacturerGroups.map((group) => (
+                <optgroup key={group.label} label={group.label}>
+                  {group.options.map((brand) => (
+                    <option key={brand} value={brand}>
+                      {brand}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
-          </label>
-          <label className="flex items-center gap-3 text-xs text-emerald-100/70">
-            <input
-              type="checkbox"
-              checked={forceRefresh}
-              onChange={(event) => setForceRefresh(event.target.checked)}
-              className="h-4 w-4 rounded border-emerald-200/30 bg-slate-900/60 text-lime-300 focus:ring-lime-300"
-            />
-            Force refresh (ignore cache)
           </label>
         </div>
         <div className="flex flex-col items-end gap-4">

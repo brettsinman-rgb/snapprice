@@ -18,7 +18,7 @@ export default function ResultsGrid({ results, sessionId }: { results: ResultIte
       <ProductCard key={item.id} result={item} sessionId={sessionId} isBest={isBest} />
     );
     if ((index + 1) % 8 === 0) {
-      items.push(<AdSlot key={`ad-${index}`} size="300x250" />);
+      items.push(<AdSlot key={`ad-${index}`} size="300x600" />);
     }
   });
 
