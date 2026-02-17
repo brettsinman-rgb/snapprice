@@ -29,11 +29,11 @@ function renderStars(rating?: number | null) {
   if (rating == null || rating <= 0) return null;
   const percentage = Math.min(100, (rating / 5) * 100);
   return (
-    <div className="flex items-center gap-2 text-[11px] text-emerald-100/70">
+    <div className="flex items-center gap-2 text-[11px] text-[#262626]/70">
       <div className="relative inline-block text-[14px] leading-none">
-        <span className="text-emerald-100/30">★★★★★</span>
+        <span className="text-[#262626]/25">★★★★★</span>
         <span
-          className="absolute left-0 top-0 overflow-hidden text-lime-300"
+          className="absolute left-0 top-0 overflow-hidden text-[#262626]"
           style={{ width: `${percentage}%` }}
         >
           ★★★★★
@@ -42,6 +42,20 @@ function renderStars(rating?: number | null) {
       <span>{rating.toFixed(1)}</span>
     </div>
   );
+}
+
+function normalizeConditionLabel(value?: string | null) {
+  if (!value) return 'Unknown';
+  const normalized = value.trim().toLowerCase();
+  const newLabels = new Set([
+    'new',
+    'brand new',
+    'nuovo',
+    'neu',
+    'nuevo',
+    'neuf'
+  ]);
+  return newLabels.has(normalized) ? 'New' : value;
 }
 
 export default function ProductCard({
@@ -59,49 +73,50 @@ export default function ProductCard({
       : result.shippingPrice === 0
         ? 'FREE'
         : formatPrice(result.shippingPrice, result.currency);
-  const condition = result.condition ?? 'Unknown';
-  const availability = result.availability ?? 'Unknown';
+  const condition = normalizeConditionLabel(result.condition);
 
   return (
     <div
       className={[
-        'group flex h-full flex-col overflow-hidden rounded-3xl border bg-slate-900/60 shadow-soft transition hover:-translate-y-1 hover:shadow-lg',
-        isBest ? 'best-price-glow border-2 border-lime-300/80' : 'border-emerald-200/10'
+        'group flex h-full flex-col overflow-hidden rounded-3xl border-2 bg-white shadow-soft transition hover:-translate-y-1 hover:shadow-lg',
+        isBest ? 'best-price-glow border-[#5ec2a4]' : 'border-[#5ec2a4]'
       ].join(' ')}
     >
       <div className="relative h-48 w-full bg-white">
-        <Image src={result.image} alt={result.title} fill className="object-contain p-6" sizes="(max-width: 768px) 100vw, 25vw" />
+        <Image src={result.image} alt={result.title} fill className="object-cover" sizes="(max-width: 768px) 100vw, 25vw" />
       </div>
       <div className="flex flex-1 flex-col gap-4 p-5">
         <div className="min-h-[72px]">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-100/70">{result.store}</p>
-          <h3 className="mt-2 text-sm font-semibold text-emerald-50 line-clamp-2">{result.title}</h3>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#262626]/70">{result.store}</p>
+          <h3 className="mt-2 text-sm font-semibold text-[#262626] line-clamp-2">{result.title}</h3>
           {renderStars(result.rating)}
         </div>
-        <div className="rounded-2xl border border-emerald-200/10 bg-slate-950/60 p-3 text-xs text-emerald-100/70">
+        <div className="rounded-2xl border border-[#5ec2a4] bg-[#ebebe3] p-3 text-xs text-[#262626]/70">
           <div className="flex items-center justify-between">
-            <span className="uppercase tracking-[0.2em] text-[10px] text-emerald-200/70">Price</span>
-            <span className="font-semibold text-emerald-50">{formatPrice(result.price, result.currency)}</span>
+            <span className="uppercase tracking-[0.2em] text-[10px] text-[#262626]/70">Price</span>
+            <span className="font-semibold text-[#262626]">{formatPrice(result.price, result.currency)}</span>
           </div>
           <div className="mt-2 flex items-center justify-between">
-            <span className="uppercase tracking-[0.2em] text-[10px] text-emerald-200/70">Shipping</span>
+            <span className="uppercase tracking-[0.2em] text-[10px] text-[#262626]/70">Shipping</span>
             <span>{shippingText}</span>
           </div>
           <div className="mt-2 flex items-center justify-between">
-            <span className="uppercase tracking-[0.2em] text-[10px] text-emerald-200/70">Condition</span>
+            <span className="uppercase tracking-[0.2em] text-[10px] text-[#262626]/70">Condition</span>
             <span className="capitalize">{condition}</span>
           </div>
-          <div className="mt-2 flex items-center justify-between">
-            <span className="uppercase tracking-[0.2em] text-[10px] text-emerald-200/70">Availability</span>
-            <span className="capitalize">{availability}</span>
-          </div>
+          {result.availability ? (
+            <div className="mt-2 flex items-center justify-between">
+              <span className="uppercase tracking-[0.2em] text-[10px] text-[#262626]/70">Availability</span>
+              <span className="capitalize">{result.availability}</span>
+            </div>
+          ) : null}
         </div>
         <a
           href={result.productUrl}
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => trackClick(sessionId, result.id)}
-          className="mt-auto inline-flex items-center justify-center rounded-full bg-lime-300/90 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-900 transition group-hover:bg-lime-200"
+          className="mt-auto inline-flex items-center justify-center rounded-full bg-[#81dcc1]/90 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-white transition group-hover:bg-[#5ec2a4]"
         >
           Buy now
         </a>

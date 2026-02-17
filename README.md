@@ -1,6 +1,6 @@
-# SnapPrice
+# Parts Vertical
 
-SnapPrice is a lightweight MVP that lets users upload (or capture) a product photo, runs a visual search through a provider API, and returns a price-sorted grid of matching purchase options.
+Parts Vertical is a lightweight MVP that lets users upload (or capture) a product photo, runs a visual search through a provider API, and returns a price-sorted grid of matching purchase options.
 
 ## Local setup
 
@@ -29,7 +29,7 @@ Open `http://localhost:3000`.
 
 ## Provider configuration
 
-SnapPrice uses a provider adapter so you can swap product search APIs.
+Parts Vertical uses a provider adapter so you can swap product search APIs.
 
 - `DATABASE_URL=...` (Postgres connection string)
 - `PROVIDER_IDS=ebay,amazon,aliexpress`
@@ -45,12 +45,33 @@ SnapPrice uses a provider adapter so you can swap product search APIs.
 - `ALIEXPRESS_APP_SECRET=...`
 - `ALIEXPRESS_TRACK_ID=...`
 - `NEXT_PUBLIC_BASE_URL=http://localhost:3000`
+- `CAP_SERVER_URL=` (required for Capacitor apps; use your deployed HTTPS URL)
 - `DEMO_MODE=true` (optional)
 - `SUPABASE_URL=...` (for uploads)
 - `SUPABASE_SERVICE_ROLE_KEY=...` (server-only)
-- `SUPABASE_STORAGE_BUCKET=snapprice-uploads`
+- `SUPABASE_STORAGE_BUCKET=torque-autopart-uploads`
 
 Providers include eBay Motors, Amazon, and AliExpress. If credentials are missing, searches will return empty results for those providers.
+
+## Mobile app setup (Capacitor)
+
+This project uses server APIs, so mobile builds should load the deployed web app URL (not a static export).
+
+1) Set `CAP_SERVER_URL` in `.env` to your deployed app (for example, `https://app.partsvertical.com`)
+2) Generate native projects:
+```
+npm run cap:add:android
+npm run cap:add:ios
+```
+3) Sync web/native config after changes:
+```
+npm run cap:sync
+```
+4) Open in native IDEs:
+```
+npm run cap:open:android
+npm run cap:open:ios
+```
 
 ## How it works
 

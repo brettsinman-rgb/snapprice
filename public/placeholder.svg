@@ -6,10 +6,10 @@
     </linearGradient>
   </defs>
   <rect width="800" height="600" fill="url(#bg)" />
-  <circle cx="650" cy="120" r="140" fill="#86efac" opacity="0.12" />
-  <circle cx="140" cy="480" r="160" fill="#6ee7b7" opacity="0.1" />
-  <rect x="180" y="220" width="440" height="240" rx="28" fill="#0b1f24" stroke="#6ee7b7" stroke-width="2" opacity="0.6" />
-  <circle cx="400" cy="340" r="70" fill="none" stroke="#6ee7b7" stroke-width="2" opacity="0.7" />
-  <path d="M320 220L350 190H450L480 220" stroke="#6ee7b7" stroke-width="2" opacity="0.7" fill="none" stroke-linecap="round" />
-  <text x="400" y="520" text-anchor="middle" fill="#a7f3d0" font-family="Manrope, Arial, sans-serif" font-size="20" letter-spacing="4">TEXT SEARCH</text>
+  <circle cx="650" cy="120" r="140" fill="#81dcc1" opacity="0.12" />
+  <circle cx="140" cy="480" r="160" fill="#81dcc1" opacity="0.1" />
+  <rect x="180" y="220" width="440" height="240" rx="28" fill="#0b1f24" stroke="#81dcc1" stroke-width="2" opacity="0.6" />
+  <circle cx="400" cy="340" r="70" fill="none" stroke="#81dcc1" stroke-width="2" opacity="0.7" />
+  <path d="M320 220L350 190H450L480 220" stroke="#81dcc1" stroke-width="2" opacity="0.7" fill="none" stroke-linecap="round" />
+  <text x="400" y="520" text-anchor="middle" fill="#81dcc1" font-family="Manrope, Arial, sans-serif" font-size="20" letter-spacing="4">TEXT SEARCH</text>
 </svg>

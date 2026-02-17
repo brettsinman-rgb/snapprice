@@ -2,7 +2,7 @@ import '@/styles/globals.css';
 import type { ReactNode } from 'react';
 
 export const metadata = {
-  title: 'SnapPrice',
+  title: 'Parts Vertical',
   description: 'Snap a product photo and find the best prices.'
 };
 

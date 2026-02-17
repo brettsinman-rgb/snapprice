@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import AdSlot from './AdSlot';
 
 export default function UploadCapture() {
   const router = useRouter();
@@ -207,12 +208,12 @@ export default function UploadCapture() {
   };
 
   return (
-    <div className="rounded-3xl border border-emerald-200/10 bg-white/5 p-6 shadow-soft">
+    <div className="rounded-3xl border border-[#5ec2a4] bg-white/80 p-6 shadow-soft">
       <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
         <div className="flex flex-col gap-4">
           <label className="inline-flex cursor-pointer flex-col items-start gap-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-100/70">Upload or capture</span>
-            <span className="inline-flex items-center justify-center rounded-full bg-lime-300/90 px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.2em] text-slate-900 hover:bg-lime-200">
+            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[#262626]">Upload or capture</span>
+            <span className="inline-flex items-center justify-center rounded-full bg-[#81dcc1]/90 px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.2em] text-white hover:bg-[#5ec2a4]">
               Choose file
             </span>
             <input
@@ -222,26 +223,26 @@ export default function UploadCapture() {
               onChange={handleFileChange}
               className="sr-only"
             />
-            <span className="text-xs text-emerald-100/70 md:hidden">
+            <span className="text-xs text-[#262626]/70 md:hidden">
               {fileName || 'No file chosen'}
             </span>
           </label>
           <label className="flex flex-col gap-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-100/70">Or type an OEM part number</span>
+            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[#262626]">Or type an OEM part number</span>
             <input
               type="text"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="e.g. 0K2A1-33-28ZA or ACDelco 41-162"
-              className="w-full rounded-2xl border border-emerald-200/20 bg-slate-900/60 px-4 py-3 text-sm text-emerald-50 placeholder:text-emerald-100/40"
+              className="w-full rounded-2xl border border-[#81dcc1]/30 bg-white px-4 py-3 text-sm text-[#262626] placeholder:text-[#262626]/40"
             />
           </label>
           <label className="flex flex-col gap-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-100/70">Vehicle manufacturer (optional)</span>
+            <span className="text-xs font-semibold uppercase tracking-[0.2em] text-[#262626]">Vehicle manufacturer (optional)</span>
             <select
               value={manufacturer}
               onChange={(event) => setManufacturer(event.target.value)}
-              className="select-cta w-full rounded-2xl border border-emerald-200/20 bg-slate-900/60 px-4 py-3 text-sm text-emerald-50"
+              className="select-cta w-full rounded-2xl border border-[#81dcc1]/30 bg-white px-4 py-3 text-sm text-[#262626]"
             >
               {manufacturerGroups.map((group) => (
                 <optgroup key={group.label} label={group.label}>
@@ -254,9 +255,15 @@ export default function UploadCapture() {
               ))}
             </select>
           </label>
+          <AdSlot
+            size="320x100"
+            mobileSize="320x100"
+            align="left"
+            className="mt-6 max-w-[320px]"
+          />
         </div>
         <div className="flex flex-col items-end gap-4">
-          <div className="w-full max-w-[380px] overflow-hidden rounded-2xl border border-emerald-200/10 bg-white">
+          <div className="w-full max-w-[380px] overflow-hidden rounded-2xl border border-[#5ec2a4] bg-white">
             {preview ? (
               <Image
                 src={preview}
@@ -274,7 +281,7 @@ export default function UploadCapture() {
             )}
           </div>
           <button
-            className="inline-flex w-full max-w-[380px] items-center justify-center rounded-full bg-emerald-50 px-7 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-900 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:bg-slate-400"
+            className="inline-flex w-full max-w-[380px] items-center justify-center rounded-full bg-[#81dcc1] px-7 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-white transition enabled:hover:bg-[#5ec2a4] disabled:cursor-not-allowed disabled:bg-[#81dcc1]/65"
             onClick={handleSubmit}
             disabled={!isReady}
           >
@@ -282,10 +289,10 @@ export default function UploadCapture() {
           </button>
         </div>
       </div>
-      <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-emerald-100/60">
+      <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-[#262626]/70">
         <span>Tips: Use a clear photo and include the OEM part number on packaging when possible.</span>
       </div>
-      {error && <p className="mt-3 text-sm text-red-300">{error}</p>}
+      {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
     </div>
   );
 }
