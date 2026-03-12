@@ -41,7 +41,12 @@ export default function ResultsGrid({ results, sessionId }: { results: ResultIte
     if (isEveryFourthRow && hasMoreResultsAfter) {
       items.push(
         <div key={`inline-banner-${index}`} className="sm:col-span-2 lg:col-span-3 xl:col-span-4">
-          <AdSlot size="970x250" mobileSize="300x250" className="py-2" />
+          <AdSlot
+            size="970x250"
+            mobileSize="300x250"
+            placement="results-inline-banner"
+            className="py-2"
+          />
         </div>
       );
     }

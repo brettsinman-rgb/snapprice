@@ -7,6 +7,7 @@ import { dedupeResults, normalizeCandidates, sortResults } from '@/lib/normalize
 import { hashBuffer, hashString, sanitizeUrl } from '@/lib/utils';
 import { rateLimit } from '@/lib/rate-limit';
 import { uploadToSupabase } from '@/lib/storage';
+import { createDevSession, saveDevResults, updateDevSessionStatus } from '@/lib/dev-session-store';
 
 const MAX_SIZE_BYTES = 8 * 1024 * 1024;
 const ACCEPTED_TYPES = ['image/jpeg', 'image/jpg', 'image/pjpeg', 'image/png', 'image/webp'];
@@ -44,7 +45,6 @@ function shouldResolveUrl(url: string) {
   }
 }
 
-
 function getClientIp(headers: Headers) {
   const forwarded = headers.get('x-forwarded-for');
   if (forwarded) return forwarded.split(',')[0]?.trim() ?? 'unknown';
@@ -57,13 +57,6 @@ export async function POST(request: Request) {
 
   if (!rate.allowed) {
     return NextResponse.json({ error: 'Too many requests. Please wait a minute.' }, { status: 429 });
-  }
-
-  if (
-    process.env.PROVIDER_IDS?.includes('ebay') &&
-    (!process.env.EBAY_CLIENT_ID || !process.env.EBAY_CLIENT_SECRET)
-  ) {
-    return NextResponse.json({ error: 'eBay credentials are not configured.' }, { status: 500 });
   }
 
   const formData = await request.formData();
@@ -92,8 +85,6 @@ export async function POST(request: Request) {
   const imageBase64 = buffer ? buffer.toString('base64') : undefined;
   const imageHash = buffer ? hashBuffer(buffer) : hashString(`text:${query.toLowerCase()}`);
 
-  const demoMode = false;
-
   const origin = process.env.NEXT_PUBLIC_BASE_URL ?? new URL(request.url).origin;
   let imageUrl = `${origin}/placeholder.svg`;
 
@@ -111,20 +102,52 @@ export async function POST(request: Request) {
     }
   }
 
-  const session = await prisma.searchSession.create({
-    data: {
-      imageUrl,
-      imageHash,
-      query: query || null,
-      country: country || null,
-      userAgent: request.headers.get('user-agent'),
-      ipHash: ip === 'unknown' ? null : hashString(ip),
-      status: 'processing'
-    }
-  });
+  let sessionId: string | null = null;
+  let useDatabase = true;
 
   try {
-    const providers = getProviders();
+    let session: { id: string };
+    try {
+      const dbSession = await prisma.searchSession.create({
+        data: {
+          imageUrl,
+          imageHash,
+          query: query || null,
+          country: country || null,
+          userAgent: request.headers.get('user-agent'),
+          ipHash: ip === 'unknown' ? null : hashString(ip),
+          status: 'processing'
+        }
+      });
+      session = { id: dbSession.id };
+      useDatabase = true;
+    } catch {
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error('Database unavailable.');
+      }
+      const devSession = createDevSession({
+        imageUrl,
+        query: query || null,
+        country: country || null,
+        status: 'processing'
+      });
+      session = { id: devSession.id };
+      useDatabase = false;
+    }
+    sessionId = session.id;
+
+    const providers = getProviders().filter((provider) => {
+      if (provider.id !== 'ebay') return true;
+      return Boolean(process.env.EBAY_CLIENT_ID && process.env.EBAY_CLIENT_SECRET);
+    });
+    if (providers.length === 0) {
+      if (useDatabase) {
+        await prisma.searchSession.update({ where: { id: session.id }, data: { status: 'failed' } });
+      } else {
+        updateDevSessionStatus(session.id, 'failed');
+      }
+      return NextResponse.json({ error: 'No search providers are configured.' }, { status: 500 });
+    }
     const searchOptions = {
       country: country && country !== 'WORLD' ? country : undefined
     };
@@ -178,7 +201,11 @@ export async function POST(request: Request) {
     const resultsToSave = filteredResults.length > 0 ? filteredResults : finalResults;
 
     if (resultsToSave.length === 0) {
-      await prisma.searchSession.update({ where: { id: session.id }, data: { status: 'empty' } });
+      if (useDatabase) {
+        await prisma.searchSession.update({ where: { id: session.id }, data: { status: 'empty' } });
+      } else {
+        updateDevSessionStatus(session.id, 'empty');
+      }
       return NextResponse.json({ sessionId: session.id });
     }
 
@@ -189,35 +216,71 @@ export async function POST(request: Request) {
       }
     }
 
-    await prisma.searchResult.createMany({
-      data: resultsToSave.map((item) => ({
-        sessionId: session.id,
-        title: item.title,
-        brand: item.brand,
-        image: item.image,
-        store: item.store,
-        price: item.price,
-        currency: item.currency,
-        shippingPrice: item.shippingPrice,
-        condition: item.condition,
-        availability: item.availability,
-        rating: item.rating,
-        reviewCount: item.reviewCount,
-        marketplace: (item as { marketplace?: string }).marketplace,
-        productUrl: item.productUrl as string,
-        matchScore: item.matchScore,
-        rawProvider: (item as { providerId?: string }).providerId ?? 'unknown',
-        rawJson: JSON.stringify(
-          rawLookup.get(`${(item as { providerId?: string }).providerId}:${item.productUrl}`) ?? {}
-        )
-      }))
-    });
+    if (useDatabase) {
+      await prisma.searchResult.createMany({
+        data: resultsToSave.map((item) => ({
+          sessionId: session.id,
+          title: item.title,
+          brand: item.brand,
+          image: item.image,
+          store: item.store,
+          price: item.price,
+          currency: item.currency,
+          shippingPrice: item.shippingPrice,
+          condition: item.condition,
+          availability: item.availability,
+          rating: item.rating,
+          reviewCount: item.reviewCount,
+          marketplace: (item as { marketplace?: string }).marketplace,
+          productUrl: item.productUrl as string,
+          matchScore: item.matchScore,
+          rawProvider: (item as { providerId?: string }).providerId ?? 'unknown',
+          rawJson: JSON.stringify(
+            rawLookup.get(`${(item as { providerId?: string }).providerId}:${item.productUrl}`) ?? {}
+          )
+        }))
+      });
 
-    await prisma.searchSession.update({ where: { id: session.id }, data: { status: 'complete' } });
+      await prisma.searchSession.update({ where: { id: session.id }, data: { status: 'complete' } });
+    } else {
+      saveDevResults(
+        session.id,
+        resultsToSave.map((item) => ({
+          id: `${session.id}-${Math.random().toString(36).slice(2, 10)}`,
+          sessionId: session.id,
+          title: item.title,
+          brand: item.brand ?? null,
+          image: item.image,
+          store: item.store,
+          price: item.price,
+          currency: item.currency,
+          shippingPrice: item.shippingPrice ?? null,
+          condition: item.condition ?? null,
+          availability: item.availability ?? null,
+          rating: item.rating ?? null,
+          reviewCount: item.reviewCount ?? null,
+          marketplace: (item as { marketplace?: string }).marketplace ?? null,
+          productUrl: item.productUrl as string,
+          matchScore: item.matchScore,
+          rawProvider: (item as { providerId?: string }).providerId ?? 'unknown',
+          rawJson: JSON.stringify(
+            rawLookup.get(`${(item as { providerId?: string }).providerId}:${item.productUrl}`) ?? {}
+          )
+        }))
+      );
+      updateDevSessionStatus(session.id, 'complete');
+    }
 
     return NextResponse.json({ sessionId: session.id });
-  } catch (error) {
-    await prisma.searchSession.update({ where: { id: session.id }, data: { status: 'failed' } });
-    return NextResponse.json({ error: 'Search provider failed. Please try again.' }, { status: 502 });
+  } catch {
+    if (sessionId) {
+      if (useDatabase) {
+        await prisma.searchSession.update({ where: { id: sessionId }, data: { status: 'failed' } }).catch(() => {});
+      } else {
+        updateDevSessionStatus(sessionId, 'failed');
+      }
+      return NextResponse.json({ error: 'Search provider failed. Please try again.' }, { status: 502 });
+    }
+    return NextResponse.json({ error: 'Database unavailable. Check DATABASE_URL and Supabase credentials.' }, { status: 503 });
   }
 }

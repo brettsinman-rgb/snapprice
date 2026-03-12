@@ -258,6 +258,7 @@ export default function UploadCapture() {
           <AdSlot
             size="320x100"
             mobileSize="320x100"
+            placement="home-upload-inline"
             align="left"
             className="mt-6 max-w-[320px]"
           />

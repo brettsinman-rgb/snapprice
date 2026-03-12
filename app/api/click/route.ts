@@ -12,6 +12,8 @@ export async function POST(request: Request) {
       sessionId: body.sessionId,
       resultId: body.resultId
     }
+  }).catch(() => {
+    // In local dev without a DB, we still want click-through UX to work.
   });
 
   return NextResponse.json({ ok: true });

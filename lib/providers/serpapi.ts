@@ -2,6 +2,30 @@ import type { ProviderCandidate, SearchProvider } from './types';
 
 const SERP_API_KEY = process.env.SERPAPI_KEY;
 
+type SerpApiItem = {
+  title?: string;
+  name?: string;
+  brand?: string;
+  thumbnail?: string;
+  image?: string;
+  thumbnail_url?: string;
+  source?: string;
+  merchant?: string;
+  store?: string;
+  price?: string | number;
+  currency?: string;
+  shipping?: string | number;
+  condition?: string;
+  availability?: string;
+  stock?: string;
+  rating?: string | number;
+  reviews?: string | number;
+  product_link?: string;
+  source_link?: string;
+  link?: string;
+  position?: number;
+};
+
 function safeNumber(value: unknown): number | undefined {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
   if (typeof value === 'string') {
@@ -51,12 +75,15 @@ export const serpApiProvider: SearchProvider = {
     const response = await fetch(url.toString(), { cache: 'no-store' });
     if (!response.ok) return [];
 
-    const json = await response.json();
+    const json = (await response.json()) as {
+      visual_matches?: SerpApiItem[];
+      shopping_results?: SerpApiItem[];
+    };
     const visualMatches = Array.isArray(json.visual_matches) ? json.visual_matches : [];
     const shoppingResults = Array.isArray(json.shopping_results) ? json.shopping_results : [];
     const combined = [...visualMatches, ...shoppingResults];
 
-    return combined.map((item: any) => ({
+    return combined.map((item) => ({
       title: item.title || item.name || 'Untitled item',
       brand: item.brand || undefined,
       image: item.thumbnail || item.image || item.thumbnail_url || '',
@@ -86,10 +113,10 @@ export const serpApiProvider: SearchProvider = {
     const response = await fetch(url.toString(), { cache: 'no-store' });
     if (!response.ok) return [];
 
-    const json = await response.json();
+    const json = (await response.json()) as { shopping_results?: SerpApiItem[] };
     const shoppingResults = Array.isArray(json.shopping_results) ? json.shopping_results : [];
 
-    return shoppingResults.map((item: any) => ({
+    return shoppingResults.map((item) => ({
       title: item.title || item.name || 'Untitled item',
       brand: item.brand || undefined,
       image: item.thumbnail || item.image || item.thumbnail_url || '',

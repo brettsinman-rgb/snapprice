@@ -1,4 +1,4 @@
-import type { ProviderCandidate, ProviderSearchOptions, SearchProvider } from './types';
+import type { ProviderCandidate, SearchProvider } from './types';
 
 const AMAZON_ACCESS_KEY = process.env.AMAZON_ACCESS_KEY_ID;
 const AMAZON_SECRET_KEY = process.env.AMAZON_SECRET_ACCESS_KEY;
@@ -9,7 +9,7 @@ const AMAZON_REGION = process.env.AMAZON_REGION || 'us-east-1';
 export const amazonProvider: SearchProvider = {
   id: 'amazon',
   name: 'Amazon',
-  async searchByText(query: string, _options?: ProviderSearchOptions): Promise<ProviderCandidate[]> {
+  async searchByText(query: string): Promise<ProviderCandidate[]> {
     if (!AMAZON_ACCESS_KEY || !AMAZON_SECRET_KEY || !AMAZON_PARTNER_TAG) return [];
 
     // TODO: Implement Amazon Product Advertising API (PA-API) signed requests.

@@ -6,6 +6,27 @@ const EBAY_DEFAULT_MARKETPLACE = process.env.EBAY_MARKETPLACE_ID || 'EBAY_MOTOR'
 
 let cachedToken: { token: string; expiresAt: number } | null = null;
 
+type EbayTokenResponse = {
+  access_token?: string;
+  expires_in?: number;
+};
+
+type EbayItemSummary = {
+  image?: { imageUrl?: string };
+  thumbnailImages?: Array<{ imageUrl?: string }>;
+  price?: { value?: string; currency?: string };
+  shippingOptions?: Array<{ shippingCost?: { value?: string; currency?: string } }>;
+  itemWebUrl?: string;
+  itemAffiliateWebUrl?: string;
+  itemHref?: string;
+  title?: string;
+  brand?: string;
+  seller?: { username?: string };
+  condition?: string;
+  estimatedAvailabilityStatus?: string;
+  matchScore?: number;
+};
+
 function base64Credentials() {
   if (!EBAY_CLIENT_ID || !EBAY_CLIENT_SECRET) return null;
   return Buffer.from(`${EBAY_CLIENT_ID}:${EBAY_CLIENT_SECRET}`).toString('base64');
@@ -31,7 +52,7 @@ async function getAccessToken(): Promise<string | null> {
   });
 
   if (!response.ok) return null;
-  const json = await response.json();
+  const json = (await response.json()) as EbayTokenResponse;
   if (!json.access_token) return null;
 
   cachedToken = {
@@ -72,12 +93,12 @@ async function searchByMarketplace(query: string, marketplaceId: string, token: 
   });
 
   if (!response.ok) return [];
-  const json = await response.json();
+  const json = (await response.json()) as { itemSummaries?: EbayItemSummary[] };
   const items = Array.isArray(json.itemSummaries) ? json.itemSummaries : [];
-  return items.map((item: any) => normalizeItem(item, marketplaceId)).filter(Boolean) as ProviderCandidate[];
+  return items.map((item) => normalizeItem(item, marketplaceId)).filter(Boolean) as ProviderCandidate[];
 }
 
-function normalizeItem(item: any, marketplaceId: string): ProviderCandidate | null {
+function normalizeItem(item: EbayItemSummary, marketplaceId: string): ProviderCandidate | null {
   const imageUrl = item.image?.imageUrl || item.thumbnailImages?.[0]?.imageUrl || '';
   const priceValue = item.price?.value ? Number(item.price.value) : undefined;
   const currency = item.price?.currency || undefined;
@@ -133,9 +154,9 @@ export const ebayProvider: SearchProvider = {
       });
 
       if (!response.ok) continue;
-      const json = await response.json();
+      const json = (await response.json()) as { itemSummaries?: EbayItemSummary[] };
       const items = Array.isArray(json.itemSummaries) ? json.itemSummaries : [];
-      results.push(...(items.map((item: any) => normalizeItem(item, market)).filter(Boolean) as ProviderCandidate[]));
+      results.push(...(items.map((item) => normalizeItem(item, market)).filter(Boolean) as ProviderCandidate[]));
     }
 
     return results;
