@@ -148,7 +148,12 @@ export default function ResultsClient({ sessionId }: { sessionId: string }) {
       return a.index - b.index;
     });
 
-    return sorted.map(({ effectivePrice, index, ...rest }) => rest);
+    return sorted.map((item) => {
+      const copy = { ...item } as ResultItem & { effectivePrice?: number; index?: number };
+      delete copy.effectivePrice;
+      delete copy.index;
+      return copy;
+    });
   }, [session, currency, condition, sortMode, selectedRegions]);
 
   if (loading) {
@@ -197,7 +202,7 @@ export default function ResultsClient({ sessionId }: { sessionId: string }) {
             </div>
           </div>
           <button
-            className="rounded-full border border-[#81dcc1]/30 px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#262626] transition hover:border-[#81dcc1]/60"
+            className="rounded-full border border-[#262626] bg-[#262626] px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-white transition hover:bg-[#1f1f1f]"
             onClick={() => (window.location.href = '/')}
           >
             New search
@@ -206,7 +211,12 @@ export default function ResultsClient({ sessionId }: { sessionId: string }) {
       </div>
 
       <div className="mx-auto mt-8 max-w-6xl">
-        <AdSlot size="970x250" mobileSize="320x100" className="mb-6" />
+        <AdSlot
+          size="970x250"
+          mobileSize="320x100"
+          placement="results-top-banner"
+          className="mb-6"
+        />
         <SortFilterBar
           sortMode={sortMode}
           setSortMode={setSortMode}
@@ -252,7 +262,12 @@ export default function ResultsClient({ sessionId }: { sessionId: string }) {
         ) : (
           <ResultsGrid sessionId={session.id} results={filtered} />
         )}
-        <AdSlot size="970x250" mobileSize="320x100" className="mt-8" />
+        <AdSlot
+          size="970x250"
+          mobileSize="320x100"
+          placement="results-bottom-banner"
+          className="mt-8"
+        />
       </div>
     </main>
   );

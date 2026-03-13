@@ -208,7 +208,7 @@ export default function UploadCapture() {
   };
 
   return (
-    <div className="rounded-3xl border border-[#5ec2a4] bg-white/80 p-6 shadow-soft">
+    <div className="rounded-3xl border border-[#5ec2a4] bg-white/80 p-4 sm:p-6 shadow-soft">
       <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
         <div className="flex flex-col gap-4">
           <label className="inline-flex cursor-pointer flex-col items-start gap-2">
@@ -258,11 +258,12 @@ export default function UploadCapture() {
           <AdSlot
             size="320x100"
             mobileSize="320x100"
+            placement="home-upload-inline"
             align="left"
             className="mt-6 max-w-[320px]"
           />
         </div>
-        <div className="flex flex-col items-end gap-4">
+        <div className="flex flex-col items-center gap-4 lg:items-end">
           <div className="w-full max-w-[380px] overflow-hidden rounded-2xl border border-[#5ec2a4] bg-white">
             {preview ? (
               <Image
@@ -270,12 +271,12 @@ export default function UploadCapture() {
                 alt="Preview"
                 width={380}
                 height={340}
-                sizes="380px"
+                sizes="(max-width: 380px) 100vw, 380px"
                 unoptimized
-                className="h-[340px] w-[380px] object-contain bg-white"
+                className="aspect-[380/340] w-full object-contain bg-white"
               />
             ) : (
-              <div className="flex h-[340px] w-[380px] items-center justify-center text-center bg-white text-xs uppercase tracking-[0.2em] text-slate-400">
+              <div className="flex aspect-[380/340] w-full items-center justify-center text-center bg-white text-xs uppercase tracking-[0.2em] text-slate-400">
                 No image selected
               </div>
             )}

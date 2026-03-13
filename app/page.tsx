@@ -1,8 +1,10 @@
 import Image from 'next/image';
+import { unstable_noStore as noStore } from 'next/cache';
 import UploadCapture from '@/app/components/UploadCapture';
 import AutoBrandTicker from '@/app/components/AutoBrandTicker';
 import AdSlot from '@/app/components/AdSlot';
 import { prisma } from '@/lib/db';
+import { getLatestDevSessions } from '@/lib/dev-session-store';
 
 type PreviousSearchItem = {
   id: string;
@@ -13,8 +15,25 @@ type PreviousSearchItem = {
 };
 
 async function getPreviousSearches(): Promise<PreviousSearchItem[]> {
+  const mapSessionToItem = (
+    session: { createdAt: Date; results: PreviousSearchItem[]; clicks?: Array<{ result?: PreviousSearchItem | null }> }
+  ): PreviousSearchItem | null => {
+    const mostRecentViewedResult = session.clicks?.[0]?.result ?? null;
+    const fallbackTopResult = session.results[0] ?? null;
+    const chosenResult = mostRecentViewedResult ?? fallbackTopResult;
+    if (!chosenResult?.productUrl) return null;
+    return {
+      id: chosenResult.id,
+      createdAt: session.createdAt,
+      title: chosenResult.title,
+      image: chosenResult.image,
+      productUrl: chosenResult.productUrl
+    };
+  };
+
   try {
-    const sessions = await prisma.searchSession.findMany({
+    noStore();
+    const dbSessions = await prisma.searchSession.findMany({
       where: { status: 'complete' },
       orderBy: { createdAt: 'desc' },
       take: 5,
@@ -46,23 +65,68 @@ async function getPreviousSearches(): Promise<PreviousSearchItem[]> {
       }
     });
 
-    return sessions
-      .map((session) => {
-        const mostRecentViewedResult = session.clicks[0]?.result;
-        const fallbackTopResult = session.results[0];
-        const chosenResult = mostRecentViewedResult ?? fallbackTopResult;
-        if (!chosenResult?.productUrl) return null;
-        return {
-          id: chosenResult.id,
+    const dbItems = dbSessions
+      .map((session) =>
+        mapSessionToItem({
           createdAt: session.createdAt,
-          title: chosenResult.title,
-          image: chosenResult.image,
-          productUrl: chosenResult.productUrl
+          clicks: session.clicks.map((click) => ({
+            result: click.result
+              ? {
+                  id: click.result.id,
+                  createdAt: session.createdAt,
+                  title: click.result.title,
+                  image: click.result.image,
+                  productUrl: click.result.productUrl
+                }
+              : null
+          })),
+          results: session.results.map((result) => ({
+            id: result.id,
+            createdAt: session.createdAt,
+            title: result.title,
+            image: result.image,
+            productUrl: result.productUrl
+          }))
+        })
+      )
+      .filter((item): item is PreviousSearchItem => Boolean(item));
+
+    const devItems = getLatestDevSessions(5)
+      .filter((session) => session.status === 'complete')
+      .map((session) => {
+        const topResult = [...session.results]
+          .sort((a, b) => b.matchScore - a.matchScore || a.price - b.price)[0];
+        if (!topResult?.productUrl) return null;
+        return {
+          id: topResult.id,
+          createdAt: session.createdAt,
+          title: topResult.title,
+          image: topResult.image,
+          productUrl: topResult.productUrl
         };
       })
       .filter((item): item is PreviousSearchItem => Boolean(item));
+
+    return [...dbItems, ...devItems]
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(0, 5);
   } catch {
-    return [];
+    return getLatestDevSessions(5)
+      .filter((session) => session.status === 'complete')
+      .map((session) => {
+        const topResult = [...session.results]
+          .sort((a, b) => b.matchScore - a.matchScore || a.price - b.price)[0];
+        if (!topResult?.productUrl) return null;
+        return {
+          id: topResult.id,
+          createdAt: session.createdAt,
+          title: topResult.title,
+          image: topResult.image,
+          productUrl: topResult.productUrl
+        };
+      })
+      .filter((item): item is PreviousSearchItem => Boolean(item))
+      .slice(0, 5);
   }
 }
 
@@ -70,26 +134,33 @@ export default async function Home() {
   const previousSearches = await getPreviousSearches();
 
   return (
-    <main className="min-h-screen px-6 py-14">
+    <main className="min-h-screen px-4 py-8 sm:px-6 sm:py-14">
       <div className="mx-auto max-w-6xl">
         <div className="flex flex-col gap-10">
-          <div className="relative overflow-hidden rounded-[32px] border border-[#5ec2a4] bg-white/80 p-10 shadow-soft backdrop-blur fade-up">
+          <div className="relative overflow-hidden rounded-[32px] border border-[#5ec2a4] bg-white/80 p-5 sm:p-10 shadow-soft backdrop-blur fade-up">
             <div className="absolute -left-24 -top-24 h-64 w-64 rounded-full bg-[#81dcc1]/10 blur-3xl" />
             <div className="absolute -right-20 top-10 h-40 w-40 rounded-full bg-[#81dcc1]/10 blur-3xl" />
             <div className="relative flex flex-col gap-5">
               <div className="mx-auto w-[250px]">
-                <Image
-                  src="/logos/TS.png"
-                  alt="TS logo"
-                  width={250}
-                  height={80}
-                  className="h-auto w-[250px] object-contain"
-                  priority
-                />
+                <div className="relative h-[80px] w-full">
+                  <Image
+                    src="/logos/TS.png"
+                    alt="TS logo"
+                    fill
+                    sizes="250px"
+                    className="object-contain"
+                    priority
+                  />
+                </div>
               </div>
-              <AdSlot size="970x250" mobileSize="320x100" className="mt-2 pb-[15px]" />
-              <h1 className="text-2xl font-semibold leading-[1.35] text-[#262626] md:text-4xl">
-                <span className="text-3xl md:text-5xl">Searching for an OEM part?</span>
+              <AdSlot
+                size="970x250"
+                mobileSize="320x100"
+                placement="home-hero-banner"
+                className="mt-2 pb-[15px]"
+              />
+              <h1 className="text-xl font-semibold leading-[1.35] text-[#262626] sm:text-2xl md:text-4xl">
+                <span className="text-2xl sm:text-3xl md:text-5xl">Searching for an OEM part?</span>
                 <span className="mt-2 block font-medium">Parts Vertical discovers the best pricing for you instantly.</span>
               </h1>
               <p className="max-w-2xl text-[15px] text-[#5ec2a4] md:text-[17px]">
@@ -148,7 +219,7 @@ export default async function Home() {
               </div>
             </section>
           ) : null}
-          <AdSlot size="970x250" mobileSize="320x100" className="py-2" />
+          <AdSlot size="970x250" mobileSize="320x100" placement="home-mid-banner" className="py-2" />
           <div className="rounded-3xl border border-[#5ec2a4] bg-white/80 px-6 py-10 shadow-soft fade-up fade-up-delay-1">
             <div className="mx-auto max-w-3xl text-center">
               <p className="display-font text-xl font-semibold text-[#262626] md:text-2xl">

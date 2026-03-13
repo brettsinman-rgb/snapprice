@@ -45,6 +45,7 @@ Parts Vertical uses a provider adapter so you can swap product search APIs.
 - `ALIEXPRESS_APP_SECRET=...`
 - `ALIEXPRESS_TRACK_ID=...`
 - `NEXT_PUBLIC_BASE_URL=http://localhost:3000`
+- `NEXT_PUBLIC_GAM_AD_UNIT_PATH=` (for Google Ad Manager, e.g. `/1234567/parts-vertical`)
 - `CAP_SERVER_URL=` (required for Capacitor apps; use your deployed HTTPS URL)
 - `DEMO_MODE=true` (optional)
 - `SUPABASE_URL=...` (for uploads)
@@ -52,6 +53,31 @@ Parts Vertical uses a provider adapter so you can swap product search APIs.
 - `SUPABASE_STORAGE_BUCKET=torque-autopart-uploads`
 
 Providers include eBay Motors, Amazon, and AliExpress. If credentials are missing, searches will return empty results for those providers.
+
+### Google Ad Manager setup
+
+Ad slots render through Google Publisher Tag (GPT) when `NEXT_PUBLIC_GAM_AD_UNIT_PATH` is set.
+The app accepts either `/1234567/parts-vertical` or `1234567/parts-vertical` and normalizes it at runtime.
+
+Configured placements in this app:
+- `home-hero-banner`
+- `home-upload-inline`
+- `home-mid-banner`
+- `results-top-banner`
+- `results-inline-banner`
+- `results-bottom-banner`
+
+Example ad unit path resolution:
+- Base: `/1234567/parts-vertical`
+- Slot path generated in app: `/1234567/parts-vertical/results-top-banner`
+
+To enable live banners in a deployment:
+1) Set `NEXT_PUBLIC_GAM_AD_UNIT_PATH` in the deployment environment
+2) Redeploy the app so the public env var is compiled into the client bundle
+3) Create matching GAM ad units for each placement listed above
+4) Publish line items/creatives in Google Ad Manager
+
+If GAM has no fill for a slot, the app now collapses the empty div in production instead of showing a placeholder label.
 
 ## Mobile app setup (Capacitor)
 

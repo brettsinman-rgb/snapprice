@@ -93,5 +93,10 @@ export function sortResults(results: NormalizedResult[], mode: 'cheapest' | 'exp
     return a.index - b.index;
   });
 
-  return sorted.map(({ effectivePrice, index, ...rest }) => rest);
+  return sorted.map((item) => {
+    const copy = { ...item } as NormalizedResult & { effectivePrice?: number; index?: number };
+    delete copy.effectivePrice;
+    delete copy.index;
+    return copy;
+  });
 }
