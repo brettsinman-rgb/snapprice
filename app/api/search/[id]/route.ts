@@ -1,12 +1,18 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getDevSession } from '@/lib/dev-session-store';
+import { createClient } from '@/lib/supabase/server';
 
 export async function GET(
   _: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  
+  // Get current user
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
   const devSession = getDevSession(id);
   if (devSession) {
     return NextResponse.json({
@@ -27,6 +33,11 @@ export async function GET(
 
   if (!session) {
     return NextResponse.json({ error: 'Session not found.' }, { status: 404 });
+  }
+
+  // Privacy check: If session belongs to a user, only that user can view it
+  if (session.userId && session.userId !== user?.id) {
+    return NextResponse.json({ error: 'Unauthorized access to this search.' }, { status: 403 });
   }
 
   return NextResponse.json({

@@ -6,6 +6,7 @@ import ResultsGrid from './ResultsGrid';
 import SortFilterBar from './SortFilterBar';
 import LoadingSkeleton from './LoadingSkeleton';
 import AdSlot from './AdSlot';
+import UserMenu from './UserMenu';
 
 export type ResultItem = {
   id: string;
@@ -201,12 +202,15 @@ export default function ResultsClient({ sessionId }: { sessionId: string }) {
               </p>
             </div>
           </div>
-          <button
-            className="rounded-full border border-[#262626] bg-[#262626] px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-white transition hover:bg-[#1f1f1f]"
-            onClick={() => (window.location.href = '/')}
-          >
-            New search
-          </button>
+          <div className="flex items-center gap-4">
+            <button
+              className="rounded-full border border-[#262626] bg-[#262626] px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-white transition hover:bg-[#1f1f1f]"
+              onClick={() => (window.location.href = '/')}
+            >
+              New search
+            </button>
+            <UserMenu />
+          </div>
         </div>
       </div>
 

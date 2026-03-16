@@ -7,8 +7,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id        String   @id // This should match Supabase auth.users.id
+  email     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  sessions  SearchSession[]
+}
+
 model SearchSession {
   id        String   @id @default(cuid())
+  userId    String?  // Optional for anonymous searches, or required for tracked ones
+  user      User?    @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
   imageUrl  String
   imageHash String

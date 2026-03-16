@@ -1,6 +1,17 @@
--- 1. Create SearchSession table
+-- 0. Create User table (Matches Supabase Auth)
+CREATE TABLE IF NOT EXISTS public."User" (
+    "id" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "updatedAt" TIMESTAMP(3) WITH TIME ZONE NOT NULL,
+    CONSTRAINT "User_pkey" PRIMARY KEY ("id")
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "User_email_key" ON public."User"("email");
+
+-- 1. Create SearchSession table (or add userId if it exists)
 CREATE TABLE IF NOT EXISTS public."SearchSession" (
     "id" TEXT NOT NULL,
+    "userId" TEXT,
     "createdAt" TIMESTAMP(3) WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
     "imageUrl" TEXT NOT NULL,
     "imageHash" TEXT NOT NULL,
@@ -11,6 +22,14 @@ CREATE TABLE IF NOT EXISTS public."SearchSession" (
     "status" TEXT NOT NULL,
     CONSTRAINT "SearchSession_pkey" PRIMARY KEY ("id")
 );
+
+-- Ensure userId column exists if table was created previously
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='SearchSession' AND column_name='userId') THEN
+        ALTER TABLE public."SearchSession" ADD COLUMN "userId" TEXT;
+    END IF;
+END $$;
 
 -- 2. Create SearchResult table
 CREATE TABLE IF NOT EXISTS public."SearchResult" (
@@ -49,33 +68,65 @@ CREATE INDEX IF NOT EXISTS "SearchResult_sessionId_idx" ON public."SearchResult"
 CREATE INDEX IF NOT EXISTS "ClickEvent_sessionId_idx" ON public."ClickEvent"("sessionId");
 CREATE INDEX IF NOT EXISTS "ClickEvent_resultId_idx" ON public."ClickEvent"("resultId");
 
--- 5. Add Foreign Key constraints
-ALTER TABLE public."SearchResult" 
-ADD CONSTRAINT "SearchResult_sessionId_fkey" 
-FOREIGN KEY ("sessionId") REFERENCES public."SearchSession"("id") 
-ON DELETE RESTRICT ON UPDATE CASCADE;
+-- 5. Add Foreign Key constraints (with safety checks)
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name='SearchSession_userId_fkey') THEN
+        ALTER TABLE public."SearchSession" ADD CONSTRAINT "SearchSession_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name='SearchResult_sessionId_fkey') THEN
+        ALTER TABLE public."SearchResult" ADD CONSTRAINT "SearchResult_sessionId_fkey" FOREIGN KEY ("sessionId") REFERENCES public."SearchSession"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+    END IF;
 
-ALTER TABLE public."ClickEvent" 
-ADD CONSTRAINT "ClickEvent_sessionId_fkey" 
-FOREIGN KEY ("sessionId") REFERENCES public."SearchSession"("id") 
-ON DELETE RESTRICT ON UPDATE CASCADE;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name='ClickEvent_sessionId_fkey') THEN
+        ALTER TABLE public."ClickEvent" ADD CONSTRAINT "ClickEvent_sessionId_fkey" FOREIGN KEY ("sessionId") REFERENCES public."SearchSession"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+    END IF;
 
-ALTER TABLE public."ClickEvent" 
-ADD CONSTRAINT "ClickEvent_resultId_fkey" 
-FOREIGN KEY ("resultId") REFERENCES public."SearchResult"("id") 
-ON DELETE RESTRICT ON UPDATE CASCADE;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name='ClickEvent_resultId_fkey') THEN
+        ALTER TABLE public."ClickEvent" ADD CONSTRAINT "ClickEvent_resultId_fkey" FOREIGN KEY ("resultId") REFERENCES public."SearchResult"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+    END IF;
+END $$;
 
 -- 6. Enable Row Level Security (RLS)
+ALTER TABLE public."User" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public."SearchSession" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public."SearchResult" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public."ClickEvent" ENABLE ROW LEVEL SECURITY;
 
--- 7. Add Public Read Policies
-CREATE POLICY "Allow public read for SearchSession" ON public."SearchSession" FOR SELECT USING (true);
-CREATE POLICY "Allow public read for SearchResult" ON public."SearchResult" FOR SELECT USING (true);
-CREATE POLICY "Allow public read for ClickEvent" ON public."ClickEvent" FOR SELECT USING (true);
+-- 7. Add Public Read Policies (Safety check for existing policies)
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname='Allow public read for User') THEN
+        CREATE POLICY "Allow public read for User" ON public."User" FOR SELECT USING (true);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname='Allow public read for SearchSession') THEN
+        CREATE POLICY "Allow public read for SearchSession" ON public."SearchSession" FOR SELECT USING (true);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname='Allow public read for SearchResult') THEN
+        CREATE POLICY "Allow public read for SearchResult" ON public."SearchResult" FOR SELECT USING (true);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname='Allow public read for ClickEvent') THEN
+        CREATE POLICY "Allow public read for ClickEvent" ON public."ClickEvent" FOR SELECT USING (true);
+    END IF;
+END $$;
 
--- 8. Add Public Insert Policies
-CREATE POLICY "Allow public insert for SearchSession" ON public."SearchSession" FOR INSERT WITH CHECK (true);
-CREATE POLICY "Allow public insert for SearchResult" ON public."SearchResult" FOR INSERT WITH CHECK (true);
-CREATE POLICY "Allow public insert for ClickEvent" ON public."ClickEvent" FOR INSERT WITH CHECK (true);
+-- 8. Add Public Insert/Update Policies
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname='Allow public insert for User') THEN
+        CREATE POLICY "Allow public insert for User" ON public."User" FOR INSERT WITH CHECK (true);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname='Allow public update for User') THEN
+        CREATE POLICY "Allow public update for User" ON public."User" FOR UPDATE USING (true);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname='Allow public insert for SearchSession') THEN
+        CREATE POLICY "Allow public insert for SearchSession" ON public."SearchSession" FOR INSERT WITH CHECK (true);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname='Allow public insert for SearchResult') THEN
+        CREATE POLICY "Allow public insert for SearchResult" ON public."SearchResult" FOR INSERT WITH CHECK (true);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname='Allow public insert for ClickEvent') THEN
+        CREATE POLICY "Allow public insert for ClickEvent" ON public."ClickEvent" FOR INSERT WITH CHECK (true);
+    END IF;
+END $$;

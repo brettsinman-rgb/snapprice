@@ -8,6 +8,7 @@ import { hashBuffer, hashString, sanitizeUrl } from '@/lib/utils';
 import { rateLimit } from '@/lib/rate-limit';
 import { uploadToSupabase } from '@/lib/storage';
 import { createDevSession, saveDevResults, updateDevSessionStatus } from '@/lib/dev-session-store';
+import { createClient } from '@/lib/supabase/server';
 
 const MAX_SIZE_BYTES = 8 * 1024 * 1024;
 const ACCEPTED_TYPES = ['image/jpeg', 'image/jpg', 'image/pjpeg', 'image/png', 'image/webp'];
@@ -88,6 +89,19 @@ export async function POST(request: Request) {
   const origin = process.env.NEXT_PUBLIC_BASE_URL ?? new URL(request.url).origin;
   let imageUrl = `${origin}/placeholder.svg`;
 
+  // Get authenticated user
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // Ensure user exists in local DB if authenticated
+  if (user) {
+    await prisma.user.upsert({
+      where: { id: user.id },
+      update: { email: user.email! },
+      create: { id: user.id, email: user.email! }
+    }).catch(e => console.error('Failed to sync user to local DB:', e));
+  }
+
   if (buffer && file instanceof File) {
     const filename = `${imageHash}-${Date.now()}.${file.type.split('/')[1]}`;
     const uploadedUrl = await uploadToSupabase(buffer, filename, file.type);
@@ -110,6 +124,7 @@ export async function POST(request: Request) {
     try {
       const dbSession = await prisma.searchSession.create({
         data: {
+          userId: user?.id || null,
           imageUrl,
           imageHash,
           query: query || null,
