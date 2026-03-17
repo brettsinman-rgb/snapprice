@@ -95,11 +95,39 @@ export async function POST(request: Request) {
 
   // Ensure user exists in local DB if authenticated
   if (user) {
-    await prisma.user.upsert({
-      where: { id: user.id },
-      update: { email: user.email! },
-      create: { id: user.id, email: user.email! }
-    }).catch(e => console.error('Failed to sync user to local DB:', e));
+    try {
+      // First, try to find the user by email to handle ID mismatches
+      const existingUser = await prisma.user.findUnique({
+        where: { email: user.email! }
+      });
+
+      if (existingUser) {
+        if (existingUser.id !== user.id) {
+          // If ID changed (e.g. Supabase account recreation), update the record
+          // We use a transaction to ensure sessions are preserved if possible, 
+          // but since ID is a PK and FK target, we update it directly.
+          await prisma.user.update({
+            where: { email: user.email! },
+            data: { id: user.id }
+          });
+        } else {
+          // ID matches, just update email if needed (though it should be the same)
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { email: user.email! }
+          });
+        }
+      } else {
+        // No user with this email, safe to create
+        await prisma.user.create({
+          data: { id: user.id, email: user.email! }
+        });
+      }
+    } catch (e) {
+      console.error('Failed to sync user to local DB:', e);
+      // We don't throw here to allow anonymous-like search if DB sync fails,
+      // but the subsequent session creation might still fail if it tries to use user.id
+    }
   }
 
   if (buffer && file instanceof File) {
