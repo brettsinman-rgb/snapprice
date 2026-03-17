@@ -28,6 +28,12 @@ function getClientIp(headers: Headers) {
 async function getPreviousSearches(): Promise<PreviousSearchItem[]> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+
+  // If no user is logged in, we no longer show IP-based history
+  if (!user) {
+    return [];
+  }
+
   const headerList = await headers();
   const ip = getClientIp(headerList);
   const ipHash = ip === 'unknown' ? null : hashString(ip);
@@ -51,12 +57,8 @@ async function getPreviousSearches(): Promise<PreviousSearchItem[]> {
   try {
     noStore();
     
-    // Privacy Logic: 
-    // If logged in: Show only searches for this userId
-    // If not logged in: Show only searches for this ipHash (and userId is null)
-    const whereClause = user 
-      ? { userId: user.id, status: 'complete' } 
-      : { userId: null, ipHash: ipHash, status: 'complete' };
+    // Privacy Logic: Show only searches for this userId
+    const whereClause = { userId: user.id, status: 'complete' };
 
     const dbSessions = await prisma.searchSession.findMany({
       where: whereClause,
@@ -218,15 +220,15 @@ export default async function Home() {
               <UploadCapture />
             </div>
           </div>
-          {previousSearches.length > 0 ? (
+          {(previousSearches.length > 0 || !user) && (
             <section className="rounded-3xl border border-[#5ec2a4] bg-white/80 px-6 py-8 shadow-soft fade-up fade-up-delay-1">
               <div className="mb-6 flex items-end justify-between gap-4">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#262626]/70">
-                    {user ? 'Your' : 'Recent'} matches
+                    {user ? 'Your' : 'Search'} history
                   </p>
                   <h2 className="mt-2 text-2xl font-semibold text-[#262626]">
-                    {user ? 'Continue your search' : 'Recent matches'}
+                    {user ? 'Continue your search' : 'Save your results'}
                   </h2>
                 </div>
               </div>
@@ -293,26 +295,6 @@ export default async function Home() {
                 )}
               </div>
             </section>
-          ) : (
-            /* Empty state for Guest with no history */
-            !user && (
-              <section className="rounded-3xl border border-[#5ec2a4]/30 bg-white/40 border-dashed px-6 py-12 shadow-sm fade-up text-center">
-                <div className="max-w-md mx-auto">
-                  <h2 className="text-xl font-bold text-[#262626]">Ready to track your parts?</h2>
-                  <p className="mt-2 text-sm text-[#262626]/60 leading-relaxed">
-                    Create an account to keep a permanent history of your part searches, compare prices over time, and sync your results between your phone and computer.
-                  </p>
-                  <div className="flex items-center justify-center gap-4 mt-8">
-                    <Link href="/auth/login" className="text-[#262626] font-bold text-sm hover:text-[#5ec2a4] transition-colors">
-                      Sign In
-                    </Link>
-                    <Link href="/auth/signup" className="bg-[#5ec2a4] text-white px-8 py-3 rounded-full font-bold hover:bg-[#4da98e] transition-all shadow-md active:scale-95">
-                      Create Account
-                    </Link>
-                  </div>
-                </div>
-              </section>
-            )
           )}
           <AdSlot size="970x250" mobileSize="320x100" placement="home-mid-banner" className="py-2" />
           <div className="rounded-3xl border border-[#5ec2a4] bg-white/80 px-6 py-10 shadow-soft fade-up fade-up-delay-1">
