@@ -178,7 +178,7 @@ export function sortResults(results: NormalizedResult[], mode: 'cheapest' | 'exp
     }
 
     if (mode === 'expensive') {
-      if (b.effectivePrice !== a.effectivePrice) return b.effectivePrice - a.expensivePrice;
+      if (b.effectivePrice !== a.effectivePrice) return b.effectivePrice - a.effectivePrice;
     } else {
       if (a.effectivePrice !== b.effectivePrice) return a.effectivePrice - b.effectivePrice;
     }
