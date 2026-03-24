@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -29,6 +30,9 @@ model SearchSession {
   status    String
   results   SearchResult[]
   clicks    ClickEvent[]
+
+  @@index([userId])
+  @@index([status])
 }
 
 model SearchResult {

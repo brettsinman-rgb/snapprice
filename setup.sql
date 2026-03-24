@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS public."User" (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS "User_email_key" ON public."User"("email");
 
--- 1. Create SearchSession table (or add userId if it exists)
+-- 1. Create SearchSession table
 CREATE TABLE IF NOT EXISTS public."SearchSession" (
     "id" TEXT NOT NULL,
     "userId" TEXT,
@@ -63,7 +63,9 @@ CREATE TABLE IF NOT EXISTS public."ClickEvent" (
     CONSTRAINT "ClickEvent_pkey" PRIMARY KEY ("id")
 );
 
--- 4. Create Indexes for performance
+-- 4. Create Indexes for performance (CRITICAL FOR HISTORY PAGE)
+CREATE INDEX IF NOT EXISTS "SearchSession_userId_idx" ON public."SearchSession"("userId");
+CREATE INDEX IF NOT EXISTS "SearchSession_status_idx" ON public."SearchSession"("status");
 CREATE INDEX IF NOT EXISTS "SearchResult_sessionId_idx" ON public."SearchResult"("sessionId");
 CREATE INDEX IF NOT EXISTS "ClickEvent_sessionId_idx" ON public."ClickEvent"("sessionId");
 CREATE INDEX IF NOT EXISTS "ClickEvent_resultId_idx" ON public."ClickEvent"("resultId");
@@ -76,15 +78,15 @@ BEGIN
     END IF;
     
     IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name='SearchResult_sessionId_fkey') THEN
-        ALTER TABLE public."SearchResult" ADD CONSTRAINT "SearchResult_sessionId_fkey" FOREIGN KEY ("sessionId") REFERENCES public."SearchSession"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+        ALTER TABLE public."SearchResult" ADD CONSTRAINT "SearchResult_sessionId_fkey" FOREIGN KEY ("sessionId") REFERENCES public."SearchSession"("id") ON DELETE CASCADE ON UPDATE CASCADE;
     END IF;
 
     IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name='ClickEvent_sessionId_fkey') THEN
-        ALTER TABLE public."ClickEvent" ADD CONSTRAINT "ClickEvent_sessionId_fkey" FOREIGN KEY ("sessionId") REFERENCES public."SearchSession"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+        ALTER TABLE public."ClickEvent" ADD CONSTRAINT "ClickEvent_sessionId_fkey" FOREIGN KEY ("sessionId") REFERENCES public."SearchSession"("id") ON DELETE CASCADE ON UPDATE CASCADE;
     END IF;
 
     IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name='ClickEvent_resultId_fkey') THEN
-        ALTER TABLE public."ClickEvent" ADD CONSTRAINT "ClickEvent_resultId_fkey" FOREIGN KEY ("resultId") REFERENCES public."SearchResult"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+        ALTER TABLE public."ClickEvent" ADD CONSTRAINT "ClickEvent_resultId_fkey" FOREIGN KEY ("resultId") REFERENCES public."SearchResult"("id") ON DELETE CASCADE ON UPDATE CASCADE;
     END IF;
 END $$;
 
