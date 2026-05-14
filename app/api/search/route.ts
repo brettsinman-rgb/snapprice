@@ -18,7 +18,7 @@ export const runtime = 'nodejs';
 async function resolveFinalUrl(url: string) {
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 3000);
+    const timeout = setTimeout(() => controller.abort(), 5000); // Increased to 5s
     const response = await fetch(url, {
       method: 'HEAD',
       redirect: 'follow',
@@ -27,8 +27,13 @@ async function resolveFinalUrl(url: string) {
       return fetch(url, { method: 'GET', redirect: 'follow', signal: controller.signal });
     });
     clearTimeout(timeout);
-    return response?.url ?? url;
-  } catch {
+    const finalUrl = response?.url ?? url;
+    if (finalUrl !== url) {
+      console.log(`[Search] Resolved URL: ${url} -> ${finalUrl}`);
+    }
+    return finalUrl;
+  } catch (e) {
+    console.log(`[Search] Failed to resolve URL: ${url} - ${e instanceof Error ? e.message : 'Unknown error'}`);
     return url;
   }
 }
@@ -196,23 +201,35 @@ export async function POST(request: Request) {
     };
     const providerResults = await Promise.all(
       providers.map(async (provider) => {
-        const candidates = query
-          ? (await provider.searchByText?.(query, searchOptions)) ?? []
-          : (await provider.searchByImage?.(imageUrl, searchOptions, imageBase64)) ?? [];
-        const normalized = normalizeCandidates(candidates, query || undefined).map((item) => ({
-          ...item,
-          providerId: provider.id
-        }));
-        const raw = candidates
-          .filter((item) => item.productUrl)
-          .map((item) => [item.productUrl as string, item.raw] as const);
-        return { providerId: provider.id, normalized, raw };
+        try {
+          const candidates = query
+            ? (await provider.searchByText?.(query, searchOptions)) ?? []
+            : (await provider.searchByImage?.(imageUrl, searchOptions, imageBase64)) ?? [];
+          
+          console.log(`[Search] Provider ${provider.id} returned ${candidates.length} candidates`);
+          
+          const normalized = normalizeCandidates(candidates, query || undefined).map((item) => ({
+            ...item,
+            providerId: provider.id
+          }));
+          
+          console.log(`[Search] Provider ${provider.id} has ${normalized.length} normalized results`);
+          
+          const raw = candidates
+            .filter((item) => item.productUrl)
+            .map((item) => [item.productUrl as string, item.raw] as const);
+          return { providerId: provider.id, normalized, raw };
+        } catch (e) {
+          console.error(`[Search] Provider ${provider.id} failed:`, e);
+          return { providerId: provider.id, normalized: [], raw: [] };
+        }
       })
     );
 
     const combined = dedupeResults(
       providerResults.flatMap((item) => item.normalized)
     );
+    console.log(`[Search] Combined results after dedupe: ${combined.length}`);
 
     const sorted = sortResults(combined, 'best')
       .map((item) => ({ ...item, productUrl: sanitizeUrl(item.productUrl) }))
@@ -227,12 +244,22 @@ export async function POST(request: Request) {
         return { ...item, productUrl: resolvedUrl };
       })
     );
+    console.log(`[Search] Results after URL resolution: ${finalResults.length}`);
 
     const filteredResults = finalResults.filter((item) => {
       if (!item.productUrl) return false;
       try {
         const parsed = new URL(item.productUrl);
+        // Only filter out actual Google search result pages
         if (parsed.hostname.includes('google.com') && parsed.pathname.includes('/search')) {
+          return false;
+        }
+        // Allow redirects that are likely direct product links
+        if (parsed.hostname.includes('google.com') && parsed.pathname.includes('/url')) {
+          const urlParam = parsed.searchParams.get('q') || parsed.searchParams.get('url');
+          if (urlParam && !urlParam.includes('google.com/search')) {
+             return true;
+          }
           return false;
         }
         return true;
@@ -240,10 +267,12 @@ export async function POST(request: Request) {
         return false;
       }
     });
+    console.log(`[Search] Final filtered results: ${filteredResults.length}`);
 
     const resultsToSave = filteredResults.length > 0 ? filteredResults : finalResults;
 
     if (resultsToSave.length === 0) {
+      console.log(`[Search] No results to save. providerResults count: ${providerResults.reduce((acc, p) => acc + p.normalized.length, 0)}, finalResults count: ${finalResults.length}, filteredResults count: ${filteredResults.length}`);
       if (useDatabase) {
         await prisma.searchSession.update({ where: { id: session.id }, data: { status: 'empty' } });
       } else {
@@ -251,6 +280,8 @@ export async function POST(request: Request) {
       }
       return NextResponse.json({ sessionId: session.id });
     }
+
+    console.log(`[Search] Saving ${resultsToSave.length} results to session ${session.id}`);
 
     const rawLookup = new Map<string, unknown>();
     for (const providerResult of providerResults) {

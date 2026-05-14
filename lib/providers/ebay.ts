@@ -82,16 +82,8 @@ function marketplaceFromCountry(country?: string) {
 async function searchByMarketplace(query: string, marketplaceId: string, token: string) {
   const url = new URL('https://api.ebay.com/buy/browse/v1/item_summary/search');
   
-  // Detect if query is likely a Part Number (Improved to handle spaces)
-  const partNumberRegex = /\b([A-Z0-9]{3,}[ -][A-Z0-9]{3,}[ -][A-Z0-9]{2,})\b|\b[A-Z0-9]{7,}\b/i;
-  const isPartNumber = partNumberRegex.test(query);
-  
-  // Only add negative keywords if it's NOT a part number search
-  const negativeKeywords = isPartNumber ? '' : ' -shoe -sneaker -clothing -nike -adidas -apparel -toy -shirt -boot -trainer -jordan -dunk -yeezy';
-  
-  const refinedQuery = query.toLowerCase().includes('part') || query.toLowerCase().includes('car') || isPartNumber
-    ? `${query}${negativeKeywords}`
-    : `${query} car part${negativeKeywords}`;
+  const negativeKeywords = ' -shoe -sneaker -clothing -nike -adidas -apparel -toy -shirt -boot -trainer -jordan -dunk -yeezy';
+  const refinedQuery = `${query}${negativeKeywords}`;
     
   url.searchParams.set('q', refinedQuery);
   url.searchParams.set('limit', '50');

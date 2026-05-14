@@ -32,6 +32,11 @@ function safeNumber(value: unknown): number | undefined {
     const parsed = Number(value.replace(/[^0-9.]/g, ''));
     return Number.isFinite(parsed) ? parsed : undefined;
   }
+  if (typeof value === 'object' && value !== null) {
+    const obj = value as any;
+    if (typeof obj.extracted_value === 'number') return obj.extracted_value;
+    if (typeof obj.value === 'string') return safeNumber(obj.value);
+  }
   return undefined;
 }
 
@@ -65,12 +70,9 @@ export const serpApiProvider: SearchProvider = {
   async searchByImage(imageUrl: string, options): Promise<ProviderCandidate[]> {
     if (!SERP_API_KEY) return [];
 
-    const negativeKeywords = '-shoe -sneaker -clothing -nike -adidas -apparel -toy -shirt -boot -trainer -jordan -dunk -yeezy';
-    
     const url = new URL('https://serpapi.com/search.json');
     url.searchParams.set('engine', 'google_lens');
     url.searchParams.set('url', imageUrl);
-    url.searchParams.set('q', `car part ${negativeKeywords}`);
     url.searchParams.set('api_key', SERP_API_KEY);
     const gl = mapCountryToGl(options?.country);
     if (gl) url.searchParams.set('gl', gl);
@@ -81,27 +83,50 @@ export const serpApiProvider: SearchProvider = {
     const json = (await response.json()) as {
       visual_matches?: SerpApiItem[];
       shopping_results?: SerpApiItem[];
+      error?: string;
     };
+    
+    if (json.error) {
+      console.error(`[SerpApi] Error: ${json.error}`);
+    }
+    
     const visualMatches = Array.isArray(json.visual_matches) ? json.visual_matches : [];
     const shoppingResults = Array.isArray(json.shopping_results) ? json.shopping_results : [];
+
     const combined = [...visualMatches, ...shoppingResults];
 
-    return combined.map((item) => ({
-      title: item.title || item.name || 'Untitled item',
-      brand: item.brand || undefined,
-      image: item.thumbnail || item.image || item.thumbnail_url || '',
-      store: item.source || item.merchant || item.store || undefined,
-      price: safeNumber(item.price),
-      currency: item.currency || (typeof item.price === 'string' && /\$/.test(item.price) ? 'USD' : undefined),
-      shippingPrice: safeNumber(item.shipping),
-      condition: item.condition || undefined,
-      availability: item.availability || item.stock || undefined,
-      rating: safeNumber(item.rating),
-      reviewCount: typeof item.reviews === 'number' ? item.reviews : safeNumber(item.reviews),
-      productUrl: item.product_link || item.source_link || item.link || undefined,
-      matchScore: typeof item.position === 'number' ? Math.max(0, 1 - item.position / 100) : undefined,
-      raw: item
-    }));
+    return combined.map((item) => {
+      const price = safeNumber(item.price);
+      let currency = item.currency;
+      if (!currency && typeof item.price === 'object' && item.price !== null) {
+        currency = (item.price as any).currency;
+      }
+      if (!currency && typeof item.price === 'string' && /\$/.test(item.price)) {
+        currency = 'USD';
+      }
+      
+      // Standardize currency
+      if (currency === '$') currency = 'USD';
+      if (currency === '£') currency = 'GBP';
+      if (currency === '€') currency = 'EUR';
+
+      return {
+        title: item.title || item.name || 'Untitled item',
+        brand: item.brand || undefined,
+        image: item.thumbnail || item.image || item.thumbnail_url || '',
+        store: item.source || item.merchant || item.store || undefined,
+        price,
+        currency,
+        shippingPrice: safeNumber(item.shipping),
+        condition: item.condition || undefined,
+        availability: item.availability || item.stock || undefined,
+        rating: safeNumber(item.rating),
+        reviewCount: typeof item.reviews === 'number' ? item.reviews : safeNumber(item.reviews),
+        productUrl: item.product_link || item.source_link || item.link || undefined,
+        matchScore: typeof item.position === 'number' ? Math.max(0, 1 - item.position / 100) : undefined,
+        raw: item
+      };
+    });
   },
   async searchByText(query: string, options): Promise<ProviderCandidate[]> {
     if (!SERP_API_KEY) return [];
@@ -109,23 +134,12 @@ export const serpApiProvider: SearchProvider = {
     const url = new URL('https://serpapi.com/search.json');
     url.searchParams.set('engine', 'google_shopping');
     
-    // Detect if query is likely a Part Number (Improved to handle spaces)
-    const partNumberRegex = /\b([A-Z0-9]{3,}[ -][A-Z0-9]{3,}[ -][A-Z0-9]{2,})\b|\b[A-Z0-9]{7,}\b/i;
-    const isPartNumber = partNumberRegex.test(query);
-    
-    // If it's NOT a part number, force category and add negative keywords
-    if (!isPartNumber) {
-      url.searchParams.set('tbs', 'p_cat:5613');
-    }
-    
-    const negativeKeywords = isPartNumber ? '' : ' -shoe -sneaker -clothing -nike -adidas -apparel -toy -shirt -boot -trainer -jordan -dunk -yeezy -shirt -tshirt -hoodie';
-    
-    const refinedQuery = query.toLowerCase().includes('part') || query.toLowerCase().includes('car') || isPartNumber
-      ? `${query}${negativeKeywords}`
-      : `${query} car part${negativeKeywords}`;
+    const negativeKeywords = ' -shoe -sneaker -clothing -nike -adidas -apparel -toy -shirt -boot -trainer -jordan -dunk -yeezy';
+    const refinedQuery = `${query}${negativeKeywords}`;
       
     url.searchParams.set('q', refinedQuery);
     url.searchParams.set('api_key', SERP_API_KEY);
+
     const gl = mapCountryToGl(options?.country);
     if (gl) url.searchParams.set('gl', gl);
 
@@ -135,21 +149,37 @@ export const serpApiProvider: SearchProvider = {
     const json = (await response.json()) as { shopping_results?: SerpApiItem[] };
     const shoppingResults = Array.isArray(json.shopping_results) ? json.shopping_results : [];
 
-    return shoppingResults.map((item) => ({
-      title: item.title || item.name || 'Untitled item',
-      brand: item.brand || undefined,
-      image: item.thumbnail || item.image || item.thumbnail_url || '',
-      store: item.source || item.merchant || item.store || undefined,
-      price: safeNumber(item.price),
-      currency: item.currency || (typeof item.price === 'string' && /\$/.test(item.price) ? 'USD' : undefined),
-      shippingPrice: safeNumber(item.shipping),
-      condition: item.condition || undefined,
-      availability: item.availability || item.stock || undefined,
-      rating: safeNumber(item.rating),
-      reviewCount: typeof item.reviews === 'number' ? item.reviews : safeNumber(item.reviews),
-      productUrl: item.product_link || item.source_link || item.link || undefined,
-      matchScore: typeof item.position === 'number' ? Math.max(0, 1 - item.position / 100) : undefined,
-      raw: item
-    }));
+    return shoppingResults.map((item) => {
+      const price = safeNumber(item.price);
+      let currency = item.currency;
+      if (!currency && typeof item.price === 'object' && item.price !== null) {
+        currency = (item.price as any).currency;
+      }
+      if (!currency && typeof item.price === 'string' && /\$/.test(item.price)) {
+        currency = 'USD';
+      }
+      
+      // Standardize currency
+      if (currency === '$') currency = 'USD';
+      if (currency === '£') currency = 'GBP';
+      if (currency === '€') currency = 'EUR';
+
+      return {
+        title: item.title || item.name || 'Untitled item',
+        brand: item.brand || undefined,
+        image: item.thumbnail || item.image || item.thumbnail_url || '',
+        store: item.source || item.merchant || item.store || undefined,
+        price,
+        currency,
+        shippingPrice: safeNumber(item.shipping),
+        condition: item.condition || undefined,
+        availability: item.availability || item.stock || undefined,
+        rating: safeNumber(item.rating),
+        reviewCount: typeof item.reviews === 'number' ? item.reviews : safeNumber(item.reviews),
+        productUrl: item.product_link || item.source_link || item.link || undefined,
+        matchScore: typeof item.position === 'number' ? Math.max(0, 1 - item.position / 100) : undefined,
+        raw: item
+      };
+    });
   }
 };

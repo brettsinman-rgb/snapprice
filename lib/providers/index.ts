@@ -2,15 +2,17 @@ import type { SearchProvider } from './types';
 import { ebayProvider } from './ebay';
 import { amazonProvider } from './amazon';
 import { aliexpressProvider } from './aliexpress';
+import { serpApiProvider } from './serpapi';
 
 const providers: Record<string, SearchProvider> = {
   ebay: ebayProvider,
   amazon: amazonProvider,
-  aliexpress: aliexpressProvider
+  aliexpress: aliexpressProvider,
+  serpapi: serpApiProvider
 };
 
 export function getProviders(): SearchProvider[] {
-  const ids = (process.env.PROVIDER_IDS || 'ebay,amazon,aliexpress')
+  const ids = (process.env.PROVIDER_IDS || 'ebay,amazon,aliexpress,serpapi')
     .split(',')
     .map((id) => id.trim())
     .filter(Boolean);
