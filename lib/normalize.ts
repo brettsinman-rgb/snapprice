@@ -48,8 +48,21 @@ function getRelevanceScore(title: string, productUrl: string, query?: string): n
     'spark plug', 'fuel injector', 'fuel pump', 'air filter', 'oil filter', 'timing belt',
     'serpentine belt', 'drive belt', 'transmission', 'gearbox', 'piston', 'ring', 'crankshaft',
     'camshaft', 'valve cover', 'cylinder head', 'intake manifold', 'throttle body',
-    'headlight', 'taillight', 'bumper', 'grille', 'fender', 'fenders', 'side mirror',
-    'door handle', 'window regulator', 'wiper motor', 'wiper blade', 'car part', 'auto part'
+    'headlight', 'taillight', 'headlamp', 'taillamp', 'bumper', 'grille', 'fender', 'fenders', 'side mirror',
+    'door handle', 'window regulator', 'wiper motor', 'wiper blade', 'car part', 'auto part', 'spare part',
+    'wheel', 'tire', 'rim', 'alloy', 'lug nut', 'brake', 'suspension', 'coilover', 'spring',
+    'muffler', 'exhaust', 'tailpipe', 'intercooler', 'manifold', 'sensor', 'ecu', 'module',
+    'switch', 'relay', 'fuse', 'battery', 'cable', 'harness', 'lamp', 'bulb', 'lens',
+    'mirror', 'glass', 'windshield', 'hood', 'bonnet', 'trunk', 'boot lid', 'door',
+    'seat', 'steering', 'dash', 'console', 'trim', 'molding', 'badge', 'emblem',
+    'part', 'component', 'unit', 'accessory', 'kit', 'repair', 'rebuild', 'mount',
+    'hose', 'pipe', 'line', 'belt', 'pulley', 'tensioner', 'pump', 'tank', 'reservoir',
+    'fog light', 'fog lamp', 'marker light', 'side marker', 'turn signal', 'indicator',
+    'roof rack', 'tow bar', 'hitch', 'bull bar', 'grille guard', 'skid plate',
+    'spoiler', 'wing', 'body kit', 'diffuser', 'side skirt', 'fender flare',
+    'engine mount', 'transmission mount', 'strut mount', 'bushings', 'control module',
+    'abs sensor', 'oxygen sensor', 'o2 sensor', 'maf sensor', 'map sensor', 'crank sensor',
+    'cam sensor', 'knock sensor', 'temp sensor', 'oil pressure', 'fuel rail', 'fuel line'
   ];
 
   const negativeKeywords = [
@@ -62,7 +75,8 @@ function getRelevanceScore(title: string, productUrl: string, query?: string): n
     'bag', 'purse', 'handbag', 'crossbody', 'shoulder bag', 'tote', 'wallet', 'clutch bag',
     'necklace', 'bracelet', 'jewelry', 'earring', 'michael kors', 'lululemon', 'ann taylor',
     'coach', 'hermes', 'chanel', 'louis vuitton', 'fossil', 'kate spade',
-    'timex', 'casio', 'seiko', 'rolex', 'citizen', 'omega', 'tissot', 'cartier', 'automatic watch'
+    'timex', 'casio', 'seiko', 'rolex', 'citizen', 'omega', 'tissot', 'cartier', 'automatic watch',
+    'tent', 'camping', 'outdoor', 'hiking', 'backpack', 'sleeping bag', 'torch', 'flashlight'
   ];
 
   // 1. INSTANT BLOCK: Banned Domains or Fashion Keywords
@@ -74,14 +88,14 @@ function getRelevanceScore(title: string, productUrl: string, query?: string): n
     if (regex.test(normalizedTitle)) return 0;
   }
 
-  let score = 0.25;
+  let score = 0.35; // Increased base score
 
   // 2. DOMAIN CHECK
   const isSafeDomain = SAFE_DOMAINS.some(domain => normalizedUrl.includes(domain));
   const isGeneralMarket = GENERAL_MARKETPLACES.some(domain => normalizedUrl.includes(domain));
 
   if (isSafeDomain) score += 0.35;
-  if (isGeneralMarket) score += 0.05;
+  if (isGeneralMarket) score += 0.15; // Increased boost for general markets
 
   // 3. MECHANICAL VERIFICATION (Whole Word Only)
   let mechanicalMatchCount = 0;
@@ -92,8 +106,32 @@ function getRelevanceScore(title: string, productUrl: string, query?: string): n
       mechanicalMatchCount++;
     }
   }
-
-  // 4. PART NUMBER DETECTION (Improved)
+  
+  // Automotive keywords boost
+  const autoKeywords = ['car', 'truck', 'vehicle', 'auto', 'motor', 'engine', 'automotive', 'pickup', 'suv', 'sedan', 'coupe'];
+  for (const word of autoKeywords) {
+    const regex = new RegExp(`\\b${word}\\b`, 'i');
+    if (regex.test(normalizedTitle)) {
+      score += 0.1; // Increased boost
+    }
+  }
+  
+  // Brand names boost
+  const brands = [
+    'toyota', 'honda', 'ford', 'chevrolet', 'bmw', 'mercedes', 'audi', 'nissan', 
+    'hyundai', 'kia', 'mazda', 'lexus', 'volkswagen', 'subaru', 'porsche', 'ferrari',
+    'lamborghini', 'mitsubishi', 'dodge', 'jeep', 'chrysler', 'buick', 'cadillac',
+    'gmc', 'ram', 'tesla', 'volvo', 'jaguar', 'land rover', 'mini', 'fiat', 'alfa romeo',
+    'acura', 'infiniti', 'lincoln', 'mazerati', 'bentley', 'aston martin', 'rolls royce',
+    'mclaren', 'lotus', 'genesis', 'isuzu', 'suzuki', 'daihatsu', 'holden', 'hsv', 'fpv'
+  ];
+  for (const brand of brands) {
+    const regex = new RegExp(`\\b${brand}\\b`, 'i');
+    if (regex.test(normalizedTitle)) {
+      score += 0.15; // Increased boost
+      break; 
+    }
+  }
   const partNumberRegex = /\b([A-Z0-9]{3,}[ -][A-Z0-9]{3,}[ -][A-Z0-9]{2,})\b|\b[A-Z0-9]{7,}\b/i;
   const looksLikePartNumber = partNumberRegex.test(normalizedTitle);
   if (looksLikePartNumber) {
@@ -113,11 +151,31 @@ function getRelevanceScore(title: string, productUrl: string, query?: string): n
   }
 
   // 6. THE "IRON-CLAD" RULE:
-  if (!isSafeDomain && mechanicalMatchCount === 0 && !looksLikePartNumber) {
-    return 0;
+  // If we have a part number query, we MUST have a match for the part number in the title.
+  if (query && partNumberRegex.test(query)) {
+    const partNumber = query.match(partNumberRegex)?.[0];
+    if (partNumber && !normalizedTitle.includes(partNumber.toLowerCase().replace(/[^a-z0-9]/g, ''))) {
+        return 0; // Reject if part number not in title
+    }
+    // Also require some automotive context if part number not found in title (to be safe)
+    const hasAutoKeyword = autoKeywords.some(word => new RegExp(`\\b${word}\\b`, 'i').test(normalizedTitle));
+    const hasBrand = brands.some(brand => new RegExp(`\\b${brand}\\b`, 'i').test(normalizedTitle));
+    if (!partNumber && mechanicalMatchCount === 0 && !hasAutoKeyword && !hasBrand) {
+      return 0; // Reject non-automotive item for part number query
+    }
   }
 
-  return Math.min(Math.max(score, 0), 1);
+  // General Iron-Clad rule for non-part-number queries
+  if (!isSafeDomain && mechanicalMatchCount === 0 && !looksLikePartNumber) {
+    const hasAutoKeyword = autoKeywords.some(word => new RegExp(`\\b${word}\\b`, 'i').test(normalizedTitle));
+    const hasBrand = brands.some(brand => new RegExp(`\\b${brand}\\b`, 'i').test(normalizedTitle));
+    if (!normalizedTitle.includes('car part') && !normalizedTitle.includes('auto part') && !normalizedTitle.includes('part number') && !hasAutoKeyword && !hasBrand) {
+      return 0;
+    }
+  }
+
+  const finalScore = Math.min(Math.max(score, 0), 1);
+  return finalScore;
 }
 
 export function normalizeCondition(value?: string | null): string {
@@ -134,8 +192,12 @@ export function normalizeCandidates(candidates: ProviderCandidate[], query?: str
   const results: NormalizedResult[] = [];
 
   for (const candidate of candidates) {
-    if (!candidate.productUrl || !candidate.title || !candidate.image) continue;
-    if (candidate.price == null || !candidate.currency) continue;
+    if (!candidate.productUrl || !candidate.title || !candidate.image) {
+      continue;
+    }
+    if (candidate.price == null || !candidate.currency) {
+      continue;
+    }
     
     let storeHost = '';
     try {
@@ -146,12 +208,12 @@ export function normalizeCandidates(candidates: ProviderCandidate[], query?: str
 
     const relevanceScore = getRelevanceScore(candidate.title, candidate.productUrl, query);
     
-    // STRICT FILTER: Threshold raised to 0.45
-    if (relevanceScore < 0.45) {
+    // STRICT FILTER: Threshold lowered to 0.20
+    if (relevanceScore < 0.20) {
       continue;
     }
 
-    const combinedScore = (candidate.matchScore ?? 0.5) * 0.3 + relevanceScore * 0.7;
+    const combinedScore = (candidate.matchScore ?? 0.5) * 0.6 + relevanceScore * 0.4;
 
     results.push({
       title: candidate.title,

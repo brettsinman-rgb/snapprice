@@ -52,7 +52,11 @@ async function getAccessToken(): Promise<string | null> {
     })
   });
 
-  if (!response.ok) return null;
+  if (!response.ok) {
+    const errorBody = await response.text().catch(() => 'No error body');
+    console.error('eBay Auth failed:', response.status, response.statusText, errorBody);
+    return null;
+  }
   const json = (await response.json()) as EbayTokenResponse;
   if (!json.access_token) return null;
 
@@ -68,12 +72,19 @@ function marketplaceFromCountry(country?: string) {
   if (!country || country === 'WORLD') return EBAY_DEFAULT_MARKETPLACE;
   const map: Record<string, string> = {
     AUS: 'EBAY_AU',
+    AU: 'EBAY_AU',
     USA: 'EBAY_US',
+    US: 'EBAY_US',
     GBR: 'EBAY_GB',
+    GB: 'EBAY_GB',
     CAN: 'EBAY_CA',
+    CA: 'EBAY_CA',
     NZL: 'EBAY_NZ',
+    NZ: 'EBAY_NZ',
     DEU: 'EBAY_DE',
+    DE: 'EBAY_DE',
     FRA: 'EBAY_FR',
+    FR: 'EBAY_FR',
     EU: 'EBAY_DE'
   };
   return map[country] ?? EBAY_DEFAULT_MARKETPLACE;
@@ -82,16 +93,8 @@ function marketplaceFromCountry(country?: string) {
 async function searchByMarketplace(query: string, marketplaceId: string, token: string) {
   const url = new URL('https://api.ebay.com/buy/browse/v1/item_summary/search');
   
-  // Detect if query is likely a Part Number (Improved to handle spaces)
-  const partNumberRegex = /\b([A-Z0-9]{3,}[ -][A-Z0-9]{3,}[ -][A-Z0-9]{2,})\b|\b[A-Z0-9]{7,}\b/i;
-  const isPartNumber = partNumberRegex.test(query);
-  
-  // Only add negative keywords if it's NOT a part number search
-  const negativeKeywords = isPartNumber ? '' : ' -shoe -sneaker -clothing -nike -adidas -apparel -toy -shirt -boot -trainer -jordan -dunk -yeezy';
-  
-  const refinedQuery = query.toLowerCase().includes('part') || query.toLowerCase().includes('car') || isPartNumber
-    ? `${query}${negativeKeywords}`
-    : `${query} car part${negativeKeywords}`;
+  const negativeKeywords = ' -shoe -sneaker -clothing -nike -adidas -apparel -toy -shirt -boot -trainer -jordan -dunk -yeezy';
+  const refinedQuery = `${query}${negativeKeywords}`;
     
   url.searchParams.set('q', refinedQuery);
   url.searchParams.set('limit', '50');
