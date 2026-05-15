@@ -151,6 +151,21 @@ function getRelevanceScore(title: string, productUrl: string, query?: string): n
   }
 
   // 6. THE "IRON-CLAD" RULE:
+  // If we have a part number query, we MUST have a match for the part number in the title.
+  if (query && partNumberRegex.test(query)) {
+    const partNumber = query.match(partNumberRegex)?.[0];
+    if (partNumber && !normalizedTitle.includes(partNumber.toLowerCase().replace(/[^a-z0-9]/g, ''))) {
+        return 0; // Reject if part number not in title
+    }
+    // Also require some automotive context if part number not found in title (to be safe)
+    const hasAutoKeyword = autoKeywords.some(word => new RegExp(`\\b${word}\\b`, 'i').test(normalizedTitle));
+    const hasBrand = brands.some(brand => new RegExp(`\\b${brand}\\b`, 'i').test(normalizedTitle));
+    if (!partNumber && mechanicalMatchCount === 0 && !hasAutoKeyword && !hasBrand) {
+      return 0; // Reject non-automotive item for part number query
+    }
+  }
+
+  // General Iron-Clad rule for non-part-number queries
   if (!isSafeDomain && mechanicalMatchCount === 0 && !looksLikePartNumber) {
     const hasAutoKeyword = autoKeywords.some(word => new RegExp(`\\b${word}\\b`, 'i').test(normalizedTitle));
     const hasBrand = brands.some(brand => new RegExp(`\\b${brand}\\b`, 'i').test(normalizedTitle));

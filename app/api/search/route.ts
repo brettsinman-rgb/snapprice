@@ -185,8 +185,13 @@ export async function POST(request: Request) {
     sessionId = session.id;
 
     const providers = getProviders().filter((provider) => {
-      if (provider.id !== 'ebay') return true;
-      return Boolean(process.env.EBAY_CLIENT_ID && process.env.EBAY_CLIENT_SECRET);
+      if (provider.id === 'ebay') {
+        return Boolean(process.env.EBAY_CLIENT_ID && process.env.EBAY_CLIENT_SECRET);
+      }
+      if (provider.id === 'aliexpress') {
+        return Boolean(process.env.ALIEXPRESS_APP_KEY && process.env.ALIEXPRESS_APP_SECRET && process.env.ALIEXPRESS_TRACK_ID);
+      }
+      return true;
     });
     if (providers.length === 0) {
       if (useDatabase) {
