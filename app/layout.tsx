@@ -1,6 +1,7 @@
 import '@/styles/globals.css';
 import type { ReactNode } from 'react';
 import Script from 'next/script';
+import { Analytics } from '@vercel/analytics/next';
 import PriceAlertNotifications from '@/app/components/PriceAlertNotifications';
 
 export const metadata = {
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         </Script>
         {children}
         <PriceAlertNotifications />
+        <Analytics />
       </body>
     </html>
   );
