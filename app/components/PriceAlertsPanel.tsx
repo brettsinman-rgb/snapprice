@@ -76,7 +76,7 @@ export default function PriceAlertsPanel({ alerts }: { alerts: PriceAlertItem[] 
   };
 
   return (
-    <section className="mb-12 overflow-hidden rounded-[28px] border border-[#0FF7D0]/25 bg-[#edfdf8] p-4 shadow-[0_22px_70px_-55px_rgba(17,17,17,0.55)] sm:p-5">
+    <section className="mb-12 overflow-hidden rounded-[28px] border border-[#0FF7D0]/25 bg-[#0FF7D0]/8 p-4 shadow-[0_22px_70px_-55px_rgba(17,17,17,0.55)] sm:p-5">
       <div className="flex flex-col gap-2 border-b border-[#0CC6A6]/10 pb-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#0CC6A6]">Price Alerts</p>

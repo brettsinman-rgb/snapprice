@@ -1,5 +1,6 @@
 import type { NormalizedResult, ProviderCandidate } from './providers/types';
 import { extractPartNumbers } from './search-query';
+import { sanitizeUrl } from './utils';
 
 function normalizeTitle(title: string) {
   return title.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
@@ -322,7 +323,8 @@ export function normalizeCandidates(candidates: ProviderCandidate[], query?: str
   const results: NormalizedResult[] = [];
 
   for (const candidate of candidates) {
-    if (!candidate.productUrl || !candidate.title || !candidate.image) {
+    const productUrl = sanitizeUrl(candidate.productUrl);
+    if (!productUrl || !candidate.title || !candidate.image) {
       continue;
     }
     if (candidate.price == null || !candidate.currency) {
@@ -331,7 +333,7 @@ export function normalizeCandidates(candidates: ProviderCandidate[], query?: str
     
     let storeHost = '';
     try {
-      storeHost = new URL(candidate.productUrl).hostname.replace('www.', '');
+      storeHost = new URL(productUrl).hostname.replace('www.', '');
     } catch {
       continue;
     }
@@ -359,7 +361,7 @@ export function normalizeCandidates(candidates: ProviderCandidate[], query?: str
       rating: candidate.rating,
       reviewCount: candidate.reviewCount,
       marketplace: candidate.marketplace,
-      productUrl: candidate.productUrl,
+      productUrl,
       matchScore: combinedScore
     });
   }

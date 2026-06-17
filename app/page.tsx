@@ -1,4 +1,3 @@
-import { headers } from 'next/headers';
 import Image from 'next/image';
 import Link from 'next/link';
 import { unstable_noStore as noStore } from 'next/cache';
@@ -9,7 +8,7 @@ import UserMenu from '@/app/components/UserMenu';
 import { prisma } from '@/lib/db';
 import { getLatestDevSessions } from '@/lib/dev-session-store';
 import { createClient } from '@/lib/supabase/server';
-import { hashString } from '@/lib/utils';
+import { sanitizeUrl } from '@/lib/utils';
 
 type PreviousSearchItem = {
   id: string;
@@ -18,12 +17,6 @@ type PreviousSearchItem = {
   image: string;
   productUrl: string;
 };
-
-function getClientIp(headers: Headers) {
-  const forwarded = headers.get('x-forwarded-for');
-  if (forwarded) return forwarded.split(',')[0]?.trim() ?? 'unknown';
-  return headers.get('x-real-ip') ?? 'unknown';
-}
 
 async function getPreviousSearches(): Promise<PreviousSearchItem[]> {
   const supabase = await createClient();
@@ -34,23 +27,20 @@ async function getPreviousSearches(): Promise<PreviousSearchItem[]> {
     return [];
   }
 
-  const headerList = await headers();
-  const ip = getClientIp(headerList);
-  const ipHash = ip === 'unknown' ? null : hashString(ip);
-
   const mapSessionToItem = (
     session: { createdAt: Date; results: PreviousSearchItem[]; clicks?: Array<{ result?: PreviousSearchItem | null }> }
   ): PreviousSearchItem | null => {
     const mostRecentViewedResult = session.clicks?.[0]?.result ?? null;
     const fallbackTopResult = session.results[0] ?? null;
     const chosenResult = mostRecentViewedResult ?? fallbackTopResult;
-    if (!chosenResult?.productUrl) return null;
+    const productUrl = sanitizeUrl(chosenResult?.productUrl);
+    if (!chosenResult || !productUrl) return null;
     return {
       id: chosenResult.id,
       createdAt: session.createdAt,
       title: chosenResult.title,
       image: chosenResult.image,
-      productUrl: chosenResult.productUrl
+      productUrl
     };
   };
 
@@ -123,13 +113,14 @@ async function getPreviousSearches(): Promise<PreviousSearchItem[]> {
       .map((session) => {
         const topResult = [...session.results]
           .sort((a, b) => b.matchScore - a.matchScore || a.price - b.price)[0];
-        if (!topResult?.productUrl) return null;
+        const productUrl = sanitizeUrl(topResult?.productUrl);
+        if (!topResult || !productUrl) return null;
         return {
           id: topResult.id,
           createdAt: session.createdAt,
           title: topResult.title,
           image: topResult.image,
-          productUrl: topResult.productUrl
+          productUrl
         };
       })
       .filter((item): item is PreviousSearchItem => Boolean(item));
@@ -143,13 +134,14 @@ async function getPreviousSearches(): Promise<PreviousSearchItem[]> {
       .map((session) => {
         const topResult = [...session.results]
           .sort((a, b) => b.matchScore - a.matchScore || a.price - b.price)[0];
-        if (!topResult?.productUrl) return null;
+        const productUrl = sanitizeUrl(topResult?.productUrl);
+        if (!topResult || !productUrl) return null;
         return {
           id: topResult.id,
           createdAt: session.createdAt,
           title: topResult.title,
           image: topResult.image,
-          productUrl: topResult.productUrl
+          productUrl
         };
       })
       .filter((item): item is PreviousSearchItem => Boolean(item))
@@ -250,7 +242,7 @@ export default async function Home() {
                         href={item.productUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="mt-auto inline-flex items-center justify-center rounded-full bg-[#0FF7D0]/90 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-white transition hover:bg-[#0FF7D0]"
+                        className="mt-auto inline-flex items-center justify-center rounded-full bg-[#0FF7D0]/90 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#07181b] transition hover:bg-[#0FF7D0]"
                       >
                         View listing
                       </a>

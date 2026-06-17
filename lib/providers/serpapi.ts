@@ -26,6 +26,12 @@ type SerpApiItem = {
   position?: number;
 };
 
+type SerpApiNumericObject = {
+  extracted_value?: unknown;
+  value?: unknown;
+  currency?: unknown;
+};
+
 function safeNumber(value: unknown): number | undefined {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
   if (typeof value === 'string') {
@@ -33,11 +39,17 @@ function safeNumber(value: unknown): number | undefined {
     return Number.isFinite(parsed) ? parsed : undefined;
   }
   if (typeof value === 'object' && value !== null) {
-    const obj = value as any;
+    const obj = value as SerpApiNumericObject;
     if (typeof obj.extracted_value === 'number') return obj.extracted_value;
     if (typeof obj.value === 'string') return safeNumber(obj.value);
   }
   return undefined;
+}
+
+function currencyFromPriceObject(value: unknown) {
+  if (typeof value !== 'object' || value === null) return undefined;
+  const currency = (value as SerpApiNumericObject).currency;
+  return typeof currency === 'string' ? currency : undefined;
 }
 
 function mapCountryToGl(country?: string) {
@@ -99,7 +111,7 @@ export const serpApiProvider: SearchProvider = {
       const price = safeNumber(item.price);
       let currency = item.currency;
       if (!currency && typeof item.price === 'object' && item.price !== null) {
-        currency = (item.price as any).currency;
+        currency = currencyFromPriceObject(item.price);
       }
       if (!currency && typeof item.price === 'string' && /\$/.test(item.price)) {
         currency = 'USD';
@@ -153,7 +165,7 @@ export const serpApiProvider: SearchProvider = {
       const price = safeNumber(item.price);
       let currency = item.currency;
       if (!currency && typeof item.price === 'object' && item.price !== null) {
-        currency = (item.price as any).currency;
+        currency = currencyFromPriceObject(item.price);
       }
       if (!currency && typeof item.price === 'string' && /\$/.test(item.price)) {
         currency = 'USD';

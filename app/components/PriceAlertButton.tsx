@@ -104,7 +104,7 @@ export default function PriceAlertButton({
             type="button"
             onClick={createAlert}
             disabled={loading}
-            className="mt-4 inline-flex h-10 w-full items-center justify-center rounded-full bg-[#111111] px-4 text-[11px] font-bold uppercase tracking-[0.18em] text-white transition hover:bg-[#0FF7D0] disabled:cursor-wait disabled:opacity-60"
+            className="mt-4 inline-flex h-10 w-full items-center justify-center rounded-full bg-[#111111] px-4 text-[11px] font-bold uppercase tracking-[0.18em] text-white transition hover:bg-[#0FF7D0] hover:text-[#07181b] disabled:cursor-wait disabled:opacity-60"
           >
             {loading ? 'Saving...' : 'Set alert'}
           </button>

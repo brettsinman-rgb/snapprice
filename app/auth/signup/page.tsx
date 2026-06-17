@@ -3,13 +3,11 @@
 import { useState } from 'react'
 import { signup } from '../actions'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 
 export default function SignupPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
-  const router = useRouter()
 
   const handleSignup = async (formData: FormData) => {
     setLoading(true)
@@ -34,7 +32,7 @@ export default function SignupPage() {
         <div className="space-y-2">
           <h2 className="text-2xl font-bold text-[#262626]">Check your email</h2>
           <p className="text-sm text-neutral-500 leading-relaxed px-4">
-            We've sent a verification link to your email. Please click the link to activate your account.
+            We&apos;ve sent a verification link to your email. Please click the link to activate your account.
           </p>
         </div>
         <Link 
@@ -100,7 +98,7 @@ export default function SignupPage() {
         <button
           type="submit"
           disabled={loading}
-          className="group relative w-full overflow-hidden rounded-2xl bg-[#0FF7D0] p-4 font-bold text-white transition-all hover:bg-[#0CC6A6] disabled:opacity-50 active:scale-[0.98] shadow-md hover:shadow-lg"
+          className="group relative w-full overflow-hidden rounded-2xl bg-[#0FF7D0] p-4 font-bold text-[#07181b] transition-all hover:bg-[#0CC6A6] disabled:opacity-50 active:scale-[0.98] shadow-md hover:shadow-lg"
         >
           <div className="relative z-10 flex items-center justify-center gap-2">
             {loading ? (

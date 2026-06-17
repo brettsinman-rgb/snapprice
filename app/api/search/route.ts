@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import path from 'path';
 import fs from 'fs/promises';
+import dns from 'dns/promises';
+import net from 'net';
 import { prisma } from '@/lib/db';
 import { getProviders } from '@/lib/providers';
 import { dedupeResults, normalizeCandidates, sortResults } from '@/lib/normalize';
@@ -13,38 +15,141 @@ import { createClient } from '@/lib/supabase/server';
 
 const MAX_SIZE_BYTES = 8 * 1024 * 1024;
 const ACCEPTED_TYPES = ['image/jpeg', 'image/jpg', 'image/pjpeg', 'image/png', 'image/webp'];
+const DEBUG_SEARCH = process.env.PARTSSEEKR_DEBUG_SEARCH === 'true';
+const MAX_REDIRECTS = 5;
+const RESOLVABLE_PROVIDER_HOSTS = [
+  'serpapi.com',
+  'google.com',
+  'googleusercontent.com',
+  'googleadservices.com'
+];
 
 export const runtime = 'nodejs';
 
-async function resolveFinalUrl(url: string) {
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000); // Increased to 5s
-    const response = await fetch(url, {
-      method: 'HEAD',
-      redirect: 'follow',
-      signal: controller.signal
-    }).catch(async () => {
-      return fetch(url, { method: 'GET', redirect: 'follow', signal: controller.signal });
-    });
-    clearTimeout(timeout);
-    const finalUrl = response?.url ?? url;
-    if (finalUrl !== url) {
-      console.log(`[Search] Resolved URL: ${url} -> ${finalUrl}`);
-    }
-    return finalUrl;
-  } catch (e) {
-    console.log(`[Search] Failed to resolve URL: ${url} - ${e instanceof Error ? e.message : 'Unknown error'}`);
-    return url;
+function debugSearch(message: string) {
+  if (DEBUG_SEARCH && process.env.NODE_ENV !== 'production') {
+    console.log(message);
   }
+}
+
+function isAllowedResolverHost(hostname: string) {
+  const normalized = hostname.toLowerCase();
+  return RESOLVABLE_PROVIDER_HOSTS.some((domain) => normalized === domain || normalized.endsWith(`.${domain}`));
+}
+
+function isPrivateIp(ip: string) {
+  if (net.isIP(ip) === 6) {
+    const normalized = ip.toLowerCase();
+    return (
+      normalized === '::1' ||
+      normalized.startsWith('fc') ||
+      normalized.startsWith('fd') ||
+      normalized.startsWith('fe80:')
+    );
+  }
+
+  if (net.isIP(ip) !== 4) return true;
+
+  const parts = ip.split('.').map((part) => Number(part));
+  const [a, b] = parts;
+  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) return true;
+
+  return (
+    a === 0 ||
+    a === 10 ||
+    a === 127 ||
+    (a === 169 && b === 254) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168)
+  );
+}
+
+async function isSafeResolvableUrl(url: string, requireKnownHost = false) {
+  const safeUrl = sanitizeUrl(url);
+  if (!safeUrl) return false;
+
+  const parsed = new URL(safeUrl);
+  const hostname = parsed.hostname.toLowerCase();
+
+  if (
+    hostname === 'localhost' ||
+    hostname.endsWith('.localhost') ||
+    hostname.endsWith('.local') ||
+    hostname.endsWith('.internal') ||
+    hostname.endsWith('.lan') ||
+    hostname.endsWith('.home') ||
+    hostname === '0.0.0.0'
+  ) {
+    return false;
+  }
+
+  if (requireKnownHost && !isAllowedResolverHost(hostname)) return false;
+  if (net.isIP(hostname) && isPrivateIp(hostname)) return false;
+
+  try {
+    const addresses = await dns.lookup(hostname, { all: true });
+    return addresses.length > 0 && addresses.every((entry) => !isPrivateIp(entry.address));
+  } catch {
+    return false;
+  }
+}
+
+function extractSafeRedirectUrl(url: string) {
+  const safeUrl = sanitizeUrl(url);
+  if (!safeUrl) return null;
+
+  const parsed = new URL(safeUrl);
+  if (parsed.hostname.includes('google.com') && parsed.pathname.includes('/url')) {
+    return sanitizeUrl(parsed.searchParams.get('q') || parsed.searchParams.get('url'));
+  }
+
+  return safeUrl;
+}
+
+async function resolveFinalUrl(url: string) {
+  const safeInitialUrl = sanitizeUrl(url);
+  if (!safeInitialUrl || !(await isSafeResolvableUrl(safeInitialUrl, true))) return null;
+
+  let currentUrl = extractSafeRedirectUrl(safeInitialUrl);
+  if (!currentUrl || !(await isSafeResolvableUrl(currentUrl))) return null;
+
+  for (let redirectCount = 0; redirectCount < MAX_REDIRECTS; redirectCount += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    try {
+      const response = await fetch(currentUrl, {
+        method: 'HEAD',
+        redirect: 'manual',
+        signal: controller.signal
+      }).catch(async () => {
+        return fetch(currentUrl as string, { method: 'GET', redirect: 'manual', signal: controller.signal });
+      });
+      clearTimeout(timeout);
+
+      const location = response.headers.get('location');
+      if (!location || response.status < 300 || response.status >= 400) {
+        return sanitizeUrl(currentUrl);
+      }
+
+      const nextUrl = sanitizeUrl(new URL(location, currentUrl).toString());
+      if (!nextUrl || !(await isSafeResolvableUrl(nextUrl))) return null;
+      currentUrl = nextUrl;
+    } catch (e) {
+      clearTimeout(timeout);
+      debugSearch(`[Search] Failed to resolve provider URL: ${e instanceof Error ? e.message : 'Unknown error'}`);
+      return sanitizeUrl(currentUrl);
+    }
+  }
+
+  return sanitizeUrl(currentUrl);
 }
 
 function shouldResolveUrl(url: string) {
   try {
     const parsed = new URL(url);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;
     const host = parsed.hostname;
-    if (host.includes('serpapi.com')) return true;
-    if (host.includes('google.com') || host.includes('googleusercontent.com')) return true;
+    if (isAllowedResolverHost(host)) return true;
     if (parsed.pathname.includes('/url')) return true;
     return false;
   } catch {
@@ -92,7 +197,6 @@ export async function POST(request: Request) {
   const imageBase64 = buffer ? buffer.toString('base64') : undefined;
   const imageHash = buffer ? hashBuffer(buffer) : hashString(`text:${query.toLowerCase()}`);
 
-  const origin = process.env.NEXT_PUBLIC_BASE_URL ?? new URL(request.url).origin;
   let imageUrl = `/placeholder.svg`;
 
   // Get authenticated user
@@ -207,7 +311,7 @@ export async function POST(request: Request) {
     };
     const queryPlan = query ? buildSearchQueryPlan(query) : null;
     if (queryPlan) {
-      console.log(
+      debugSearch(
         `[Search] Query classified as ${queryPlan.kind}; variants: ${queryPlan.variants.join(' | ')}`
       );
     }
@@ -222,7 +326,7 @@ export async function POST(request: Request) {
               ).flat()
             : (await provider.searchByImage?.(imageUrl, searchOptions, imageBase64)) ?? [];
           
-          console.log(`[Search] Provider ${provider.id} returned ${candidates.length} candidates`);
+          debugSearch(`[Search] Provider ${provider.id} returned ${candidates.length} candidates`);
           
           const candidateLookup = new Map<string, (typeof candidates)[number]>();
           for (const candidate of candidates) {
@@ -237,7 +341,7 @@ export async function POST(request: Request) {
             providerId: provider.id
           }));
           
-          console.log(`[Search] Provider ${provider.id} has ${normalized.length} normalized results`);
+          debugSearch(`[Search] Provider ${provider.id} has ${normalized.length} normalized results`);
           
           const raw = uniqueCandidates
             .filter((item) => item.productUrl)
@@ -253,7 +357,7 @@ export async function POST(request: Request) {
     const combined = dedupeResults(
       providerResults.flatMap((item) => item.normalized)
     );
-    console.log(`[Search] Combined results after dedupe: ${combined.length}`);
+    debugSearch(`[Search] Combined results after dedupe: ${combined.length}`);
 
     const sorted = sortResults(combined, 'best')
       .map((item) => ({ ...item, productUrl: sanitizeUrl(item.productUrl) }))
@@ -265,10 +369,10 @@ export async function POST(request: Request) {
         const resolvedUrl = shouldResolveUrl(item.productUrl)
           ? await resolveFinalUrl(item.productUrl)
           : item.productUrl;
-        return { ...item, productUrl: resolvedUrl };
+        return { ...item, productUrl: sanitizeUrl(resolvedUrl) };
       })
     );
-    console.log(`[Search] Results after URL resolution: ${finalResults.length}`);
+    debugSearch(`[Search] Results after URL resolution: ${finalResults.length}`);
 
     const filteredResults = finalResults.filter((item) => {
       if (!item.productUrl) return false;
@@ -291,12 +395,12 @@ export async function POST(request: Request) {
         return false;
       }
     });
-    console.log(`[Search] Final filtered results: ${filteredResults.length}`);
+    debugSearch(`[Search] Final filtered results: ${filteredResults.length}`);
 
     const resultsToSave = filteredResults.length > 0 ? filteredResults : finalResults;
 
     if (resultsToSave.length === 0) {
-      console.log(`[Search] No results to save. providerResults count: ${providerResults.reduce((acc, p) => acc + p.normalized.length, 0)}, finalResults count: ${finalResults.length}, filteredResults count: ${filteredResults.length}`);
+      debugSearch(`[Search] No results to save. providerResults count: ${providerResults.reduce((acc, p) => acc + p.normalized.length, 0)}, finalResults count: ${finalResults.length}, filteredResults count: ${filteredResults.length}`);
       if (useDatabase) {
         await prisma.searchSession.update({ where: { id: session.id }, data: { status: 'empty' } });
       } else {
@@ -305,7 +409,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ sessionId: session.id });
     }
 
-    console.log(`[Search] Saving ${resultsToSave.length} results to session ${session.id}`);
+    debugSearch(`[Search] Saving ${resultsToSave.length} results to session ${session.id}`);
 
     const rawLookup = new Map<string, unknown>();
     for (const providerResult of providerResults) {

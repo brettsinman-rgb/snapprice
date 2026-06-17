@@ -134,7 +134,7 @@ export default function AdSlot({
   const frameClasses = clsx(
     alignClass,
     'w-full overflow-hidden rounded-2xl text-center text-white',
-    !shouldRequestAds && 'bg-[#aebab7]'
+    !shouldRequestAds && 'bg-[#d6d6d0]'
   );
 
   return (

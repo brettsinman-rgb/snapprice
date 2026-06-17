@@ -2,7 +2,7 @@ import { prisma } from '@/lib/db';
 import { getProviders } from '@/lib/providers';
 import { normalizeCandidates, sortResults } from '@/lib/normalize';
 import { buildSearchQueryPlan } from '@/lib/search-query';
-import type { NormalizedResult } from '@/lib/providers/types';
+import { sanitizeUrl } from '@/lib/utils';
 
 export type LowestPriceMatch = {
   price: number;
@@ -79,8 +79,9 @@ export async function runPriceAlertSearch(searchQuery: string, manufacturer?: st
 
   const uniqueCandidates = new Map<string, (typeof candidates)[number][number]>();
   for (const candidate of candidates.flat()) {
-    if (candidate.productUrl && !uniqueCandidates.has(candidate.productUrl)) {
-      uniqueCandidates.set(candidate.productUrl, candidate);
+    const productUrl = sanitizeUrl(candidate.productUrl);
+    if (productUrl && !uniqueCandidates.has(productUrl)) {
+      uniqueCandidates.set(productUrl, { ...candidate, productUrl });
     }
   }
 

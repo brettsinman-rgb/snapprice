@@ -3,14 +3,13 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { signout } from '@/app/auth/actions'
+import type { User } from '@supabase/supabase-js'
 
 export default function UserMenu() {
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
-  const router = useRouter()
 
   useEffect(() => {
     const getUser = async () => {
@@ -64,7 +63,7 @@ export default function UserMenu() {
       </Link>
       <div className="relative group">
         <button className="flex items-center gap-2 rounded-full border border-[#0FF7D0]/20 bg-white p-1 pr-3 hover:border-[#0FF7D0]/50 transition-all shadow-sm">
-          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-[#0FF7D0] to-[#0FF7D0] flex items-center justify-center text-white font-black text-xs shadow-inner">
+          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-[#0FF7D0] to-[#0FF7D0] flex items-center justify-center text-[#07181b] font-black text-xs shadow-inner">
             {user.email?.[0].toUpperCase()}
           </div>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-400 group-hover:text-[#0FF7D0] transition-colors"><polyline points="6 9 12 15 18 9"/></svg>

@@ -15,6 +15,15 @@ function formatPrice(value: number, currency: string) {
   }
 }
 
+function safeExternalHref(url: string) {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed.toString() : '#';
+  } catch {
+    return '#';
+  }
+}
+
 async function trackClick(sessionId: string, resultId: string) {
   const payload = JSON.stringify({ sessionId, resultId });
   if (navigator.sendBeacon) {
@@ -60,6 +69,7 @@ export default function ProductCard({
         ? 'FREE'
         : formatPrice(result.shippingPrice, result.currency);
   const condition = result.condition ?? 'Used';
+  const productUrl = safeExternalHref(result.productUrl);
 
   return (
     <div
@@ -98,11 +108,17 @@ export default function ProductCard({
           ) : null}
         </div>
         <a
-          href={result.productUrl}
+          href={productUrl}
           target="_blank"
           rel="noopener noreferrer"
-          onClick={() => trackClick(sessionId, result.id)}
-          className="mt-auto inline-flex items-center justify-center rounded-full bg-[#0FF7D0]/90 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-white transition group-hover:bg-[#0FF7D0]"
+          onClick={(event) => {
+            if (productUrl === '#') {
+              event.preventDefault();
+              return;
+            }
+            trackClick(sessionId, result.id);
+          }}
+          className="mt-auto inline-flex items-center justify-center rounded-full bg-[#0FF7D0]/90 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#07181b] transition group-hover:bg-[#0FF7D0]"
         >
           Buy now
         </a>

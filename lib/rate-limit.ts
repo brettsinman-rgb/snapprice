@@ -3,19 +3,24 @@ const MAX_REQUESTS = 8;
 
 const buckets = new Map<string, { count: number; resetAt: number }>();
 
-export function rateLimit(ip: string) {
+export function rateLimit(
+  key: string,
+  options: { windowMs?: number; maxRequests?: number } = {}
+) {
   const now = Date.now();
-  const bucket = buckets.get(ip);
+  const windowMs = options.windowMs ?? WINDOW_MS;
+  const maxRequests = options.maxRequests ?? MAX_REQUESTS;
+  const bucket = buckets.get(key);
 
   if (!bucket || bucket.resetAt < now) {
-    buckets.set(ip, { count: 1, resetAt: now + WINDOW_MS });
-    return { allowed: true, remaining: MAX_REQUESTS - 1 };
+    buckets.set(key, { count: 1, resetAt: now + windowMs });
+    return { allowed: true, remaining: maxRequests - 1 };
   }
 
-  if (bucket.count >= MAX_REQUESTS) {
+  if (bucket.count >= maxRequests) {
     return { allowed: false, remaining: 0, resetAt: bucket.resetAt };
   }
 
   bucket.count += 1;
-  return { allowed: true, remaining: MAX_REQUESTS - bucket.count };
+  return { allowed: true, remaining: maxRequests - bucket.count };
 }
