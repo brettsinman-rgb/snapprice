@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import ResultsGrid from './ResultsGrid';
 import SortFilterBar from './SortFilterBar';
 import LoadingSkeleton from './LoadingSkeleton';
@@ -182,7 +183,11 @@ export default function ResultsClient({ sessionId }: { sessionId: string }) {
       <div className="sticky top-0 z-20 border-b border-[#81dcc1]/20 bg-[#ebebe3] backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-4 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-4">
-            <div className="h-14 w-14 overflow-hidden rounded-2xl border border-[#5ec2a4] bg-white shadow-sm">
+            <Link
+              href="/"
+              aria-label="Go to PartsSeekr homepage"
+              className="block h-14 w-14 overflow-hidden rounded-2xl border border-[#5ec2a4] bg-white shadow-sm"
+            >
               <Image
                 src="/logos/PS-Favicon.png"
                 alt="Parts Seekr icon"
@@ -190,7 +195,7 @@ export default function ResultsClient({ sessionId }: { sessionId: string }) {
                 height={56}
                 className="h-full w-full bg-white object-contain p-1"
               />
-            </div>
+            </Link>
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#262626]/70">Search results</p>
               <p className="text-xs text-[#262626]/70">
