@@ -6,19 +6,23 @@ import Link from 'next/link'
 import ClearHistoryButton from '@/app/components/ClearHistoryButton'
 import PriceAlertsPanel from '@/app/components/PriceAlertsPanel'
 
-function normalizeImageUrl(url: string) {
+function normalizeImageUrl(url?: string | null) {
   if (!url) return '/placeholder.svg'
   if (url.startsWith('http')) {
     try {
       const parsed = new URL(url)
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        return '/placeholder.svg'
+      }
       if (parsed.pathname === '/placeholder.svg' || parsed.pathname.startsWith('/uploads/')) {
         return parsed.pathname
       }
+      return parsed.toString()
     } catch {
-      return url
+      return '/placeholder.svg'
     }
   }
-  return url
+  return url.startsWith('/') ? url : '/placeholder.svg'
 }
 
 export default async function HistoryPage() {
@@ -29,26 +33,31 @@ export default async function HistoryPage() {
     redirect('/auth/login')
   }
 
-  const sessions = await prisma.searchSession.findMany({
-    where: {
-      userId: user.id,
-      status: 'complete'
-    },
-    orderBy: {
-      createdAt: 'desc'
-    },
-    include: {
-      results: {
-        take: 1,
-        orderBy: [{ matchScore: 'desc' }, { price: 'asc' }]
+  const [sessionsResult, priceAlertsResult] = await Promise.allSettled([
+    prisma.searchSession.findMany({
+      where: {
+        userId: user.id,
+        status: 'complete'
+      },
+      orderBy: {
+        createdAt: 'desc'
+      },
+      include: {
+        results: {
+          take: 1,
+          orderBy: [{ matchScore: 'desc' }, { price: 'asc' }]
+        }
       }
-    }
-  })
+    }),
+    prisma.priceAlert.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: 'desc' }
+    })
+  ])
 
-  const priceAlerts = await prisma.priceAlert.findMany({
-    where: { userId: user.id },
-    orderBy: { createdAt: 'desc' }
-  })
+  const sessions = sessionsResult.status === 'fulfilled' ? sessionsResult.value : []
+  const priceAlerts = priceAlertsResult.status === 'fulfilled' ? priceAlertsResult.value : []
+  const priceAlertsError = priceAlertsResult.status === 'rejected'
 
   return (
     <main className="min-h-screen bg-[#f4f5ef] px-4 py-10 text-[#111111] sm:px-6">
@@ -78,6 +87,7 @@ export default async function HistoryPage() {
         </div>
 
         <PriceAlertsPanel
+          loadError={priceAlertsError ? 'Price alerts could not be loaded right now.' : null}
           alerts={priceAlerts.map((alert) => ({
             ...alert,
             createdAt: alert.createdAt.toISOString(),

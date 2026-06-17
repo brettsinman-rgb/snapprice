@@ -16,22 +16,25 @@ type PriceAlertItem = {
   lastResultImage?: string | null;
 };
 
-function formatPrice(value: number | null | undefined, currency: string) {
-  if (value == null) return 'Not set';
+function formatPrice(value: number | null | undefined, currency?: string | null) {
+  if (value == null || !Number.isFinite(value)) return 'Not available';
+  const safeCurrency = currency || 'USD';
   try {
     return new Intl.NumberFormat(undefined, {
       style: 'currency',
-      currency,
+      currency: safeCurrency,
       maximumFractionDigits: 2
     }).format(value);
   } catch {
-    return `${currency} ${value.toFixed(2)}`;
+    return `${safeCurrency} ${value.toFixed(2)}`;
   }
 }
 
 function formatDate(value?: Date | string | null) {
   if (!value) return 'Not checked yet';
-  return new Date(value).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Not checked yet';
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 function normalizeImageUrl(url?: string | null) {
@@ -39,14 +42,18 @@ function normalizeImageUrl(url?: string | null) {
   if (url.startsWith('http')) {
     try {
       const parsed = new URL(url);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        return '/logos/PS-Favicon.png';
+      }
       if (parsed.pathname === '/placeholder.svg' || parsed.pathname.startsWith('/uploads/')) {
         return parsed.pathname;
       }
+      return parsed.toString();
     } catch {
-      return url;
+      return '/logos/PS-Favicon.png';
     }
   }
-  return url;
+  return url.startsWith('/') ? url : '/logos/PS-Favicon.png';
 }
 
 function statusClass(status: string) {
@@ -55,8 +62,14 @@ function statusClass(status: string) {
   return 'bg-[#0FF7D0]/18 text-[#0CC6A6]';
 }
 
-export default function PriceAlertsPanel({ alerts }: { alerts: PriceAlertItem[] }) {
-  const [items, setItems] = useState(alerts);
+export default function PriceAlertsPanel({
+  alerts,
+  loadError
+}: {
+  alerts?: PriceAlertItem[];
+  loadError?: string | null;
+}) {
+  const [items, setItems] = useState(alerts ?? []);
 
   const updateStatus = async (id: string, status: 'active' | 'paused') => {
     const response = await fetch(`/api/price-alerts/${id}`, {
@@ -66,7 +79,8 @@ export default function PriceAlertsPanel({ alerts }: { alerts: PriceAlertItem[] 
     });
     if (!response.ok) return;
     const json = await response.json();
-    setItems((current) => current.map((item) => (item.id === id ? json.alert : item)));
+    if (!json?.alert) return;
+    setItems((current) => current.map((item) => (item.id === id ? { ...item, ...json.alert } : item)));
   };
 
   const removeAlert = async (id: string) => {
@@ -85,7 +99,11 @@ export default function PriceAlertsPanel({ alerts }: { alerts: PriceAlertItem[] 
         <p className="text-sm font-medium text-[#262626]/55">{items.length} saved watchlist items</p>
       </div>
 
-      {items.length === 0 ? (
+      {loadError ? (
+        <div className="mt-4 rounded-[22px] bg-white/70 p-4 text-sm font-medium text-[#262626]/55 ring-1 ring-white">
+          {loadError}
+        </div>
+      ) : items.length === 0 ? (
         <div className="mt-4 rounded-[22px] bg-white/70 p-4 text-sm font-medium text-[#262626]/55 ring-1 ring-white">
           Set a price alert from a search results page to watch for cheaper matching parts.
         </div>
@@ -108,11 +126,11 @@ export default function PriceAlertsPanel({ alerts }: { alerts: PriceAlertItem[] 
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] ${statusClass(alert.status)}`}>
-                      {alert.status}
+                      {alert.status || 'active'}
                     </span>
                     <span className="text-xs font-medium text-[#262626]/45">Checked: {formatDate(alert.lastCheckedAt)}</span>
                   </div>
-                  <h3 className="mt-2 truncate text-base font-bold text-[#111111]">{alert.searchQuery}</h3>
+                  <h3 className="mt-2 truncate text-base font-bold text-[#111111]">{alert.searchQuery || 'Watched search'}</h3>
                   <div className="mt-2 grid gap-1 text-xs font-semibold text-[#262626]/58 sm:grid-cols-2">
                     <span>Current lowest: {formatPrice(alert.currentLowestPrice, alert.currency)}</span>
                     <span>Target: {formatPrice(alert.targetPrice, alert.currency)}</span>
