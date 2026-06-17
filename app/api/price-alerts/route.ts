@@ -36,18 +36,27 @@ async function requireUser() {
   return user;
 }
 
-function priceAlertError(error: unknown, fallback: string, status = 500) {
+function priceAlertError(error: unknown, fallback: string, status = 500, operation = 'unknown') {
   const message = error instanceof Error ? error.message : undefined;
+  const prismaError = error instanceof Prisma.PrismaClientKnownRequestError ? error : null;
+  const prismaCode = prismaError?.code;
+  const prismaMeta = prismaError?.meta;
+
   if (process.env.NODE_ENV !== 'production') {
-    console.error('[PriceAlerts] API error:', message ?? error);
+    console.error('[PriceAlerts] API error:', {
+      operation,
+      prismaCode,
+      prismaMeta,
+      message: message ?? String(error)
+    });
   }
 
-  const prismaCode = error instanceof Prisma.PrismaClientKnownRequestError ? error.code : undefined;
   const isKnownMigrationIssue =
     prismaCode === 'P2021' ||
     prismaCode === 'P2022' ||
     /\bPriceAlert\b.*\b(does not exist|column|table|relation)\b/i.test(message ?? '') ||
-    /\b(notificationType|notificationStatus|notificationSentAt|triggeredPrice|triggeredProductTitle|triggeredProductUrl|triggeredProductImage)\b/i.test(message ?? '');
+    /\b(lastResultImage|notificationType|notificationStatus|notificationSentAt|triggeredPrice|triggeredProductTitle|triggeredProductUrl|triggeredProductImage)\b/i.test(message ?? '') ||
+    /\b(lastResultImage|notificationType|notificationStatus|notificationSentAt|triggeredPrice|triggeredProductTitle|triggeredProductUrl|triggeredProductImage)\b/i.test(JSON.stringify(prismaMeta ?? {}));
 
   return NextResponse.json(
     {
@@ -58,19 +67,30 @@ function priceAlertError(error: unknown, fallback: string, status = 500) {
         ? 'The PriceAlert database schema is missing one or more required columns.'
         : process.env.NODE_ENV !== 'production'
           ? message
-          : undefined
+          : undefined,
+      ...(process.env.NODE_ENV !== 'production'
+        ? {
+            debug: {
+              operation,
+              prismaCode,
+              prismaMeta
+            }
+          }
+        : {})
     },
     { status }
   );
 }
 
 export async function GET() {
+  let operation = 'authenticate user';
   try {
     const user = await requireUser();
     if (!user) {
       return NextResponse.json({ error: 'Sign in to view price alerts.' }, { status: 401 });
     }
 
+    operation = 'priceAlert.findMany';
     const alerts = await prisma.priceAlert.findMany({
       where: { userId: user.id },
       orderBy: { createdAt: 'desc' }
@@ -78,17 +98,19 @@ export async function GET() {
 
     return NextResponse.json({ alerts });
   } catch (error) {
-    return priceAlertError(error, 'Could not load price alerts. Please try again.');
+    return priceAlertError(error, 'Could not load price alerts. Please try again.', 500, operation);
   }
 }
 
 export async function POST(request: Request) {
+  let operation = 'authenticate user';
   try {
     const user = await requireUser();
     if (!user) {
       return NextResponse.json({ error: 'Sign in to create a price alert.' }, { status: 401 });
     }
 
+    operation = 'parse request body';
     const body = await request.json().catch(() => null) as {
       sessionId?: string;
       targetPrice?: number | string | null;
@@ -98,6 +120,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing search session.' }, { status: 400 });
     }
 
+    operation = 'searchSession.findUnique';
     const session = await prisma.searchSession.findUnique({
       where: { id: body.sessionId },
       include: { results: true }
@@ -125,6 +148,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Enter a valid target price.' }, { status: 400 });
     }
 
+    operation = 'priceAlert.create';
     const alert = await prisma.priceAlert.create({
       data: {
         userId: user.id,
@@ -161,6 +185,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ alert }, { status: 201 });
   } catch (error) {
-    return priceAlertError(error, 'Could not create price alert. Please try again.');
+    return priceAlertError(error, 'Could not create price alert. Please try again.', 500, operation);
   }
 }
