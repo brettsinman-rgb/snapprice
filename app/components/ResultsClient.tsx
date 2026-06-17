@@ -8,6 +8,7 @@ import SortFilterBar from './SortFilterBar';
 import LoadingSkeleton from './LoadingSkeleton';
 import AdSlot from './AdSlot';
 import UserMenu from './UserMenu';
+import PriceAlertButton from './PriceAlertButton';
 
 export type ResultItem = {
   id: string;
@@ -177,6 +178,13 @@ export default function ResultsClient({ sessionId }: { sessionId: string }) {
 
   const isEmpty = session.status === 'empty' || session.results.length === 0;
   const isFailed = session.status === 'failed';
+  const lowestResult = session.results
+    .filter((item) => Number.isFinite(item.price))
+    .map((item) => ({
+      price: item.price + (item.shippingPrice ?? 0),
+      currency: item.currency
+    }))
+    .sort((a, b) => a.price - b.price)[0];
 
   return (
     <main className="min-h-screen px-6 pb-16">
@@ -204,7 +212,13 @@ export default function ResultsClient({ sessionId }: { sessionId: string }) {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-3 md:justify-end">
+            <PriceAlertButton
+              sessionId={session.id}
+              query={session.query}
+              currentLowestPrice={lowestResult?.price ?? null}
+              currency={lowestResult?.currency ?? null}
+            />
             <button
               className="rounded-full border border-[#262626] bg-[#262626] px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-white transition hover:bg-[#1f1f1f]"
               onClick={() => (window.location.href = '/')}

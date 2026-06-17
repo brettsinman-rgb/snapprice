@@ -14,6 +14,7 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   sessions  SearchSession[]
+  priceAlerts PriceAlert[]
 }
 
 model SearchSession {
@@ -70,4 +71,27 @@ model ClickEvent {
 
   @@index([sessionId])
   @@index([resultId])
+}
+
+model PriceAlert {
+  id                 String   @id @default(cuid())
+  userId             String
+  searchQuery        String
+  manufacturer       String?
+  currentLowestPrice Float?
+  targetPrice        Float?
+  currency           String
+  status             String   @default("active")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  lastCheckedAt      DateTime?
+  triggeredAt        DateTime?
+  lastResultTitle    String?
+  lastResultUrl      String?
+  lastResultPrice    Float?
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([lastCheckedAt])
 }

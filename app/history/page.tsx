@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import ClearHistoryButton from '@/app/components/ClearHistoryButton'
+import PriceAlertsPanel from '@/app/components/PriceAlertsPanel'
 
 function normalizeImageUrl(url: string) {
   if (!url) return '/placeholder.svg'
@@ -44,6 +45,11 @@ export default async function HistoryPage() {
     }
   })
 
+  const priceAlerts = await prisma.priceAlert.findMany({
+    where: { userId: user.id },
+    orderBy: { createdAt: 'desc' }
+  })
+
   return (
     <main className="min-h-screen px-4 py-12 sm:px-6 bg-[#f8f9fa]">
       <div className="mx-auto max-w-4xl">
@@ -69,6 +75,16 @@ export default async function HistoryPage() {
             {sessions.length > 0 && <ClearHistoryButton />}
           </div>
         </div>
+
+        <PriceAlertsPanel
+          alerts={priceAlerts.map((alert) => ({
+            ...alert,
+            createdAt: alert.createdAt.toISOString(),
+            updatedAt: alert.updatedAt.toISOString(),
+            lastCheckedAt: alert.lastCheckedAt?.toISOString() ?? null,
+            triggeredAt: alert.triggeredAt?.toISOString() ?? null
+          }))}
+        />
 
         {sessions.length === 0 ? (
           <div className="bg-white rounded-[40px] border border-[#5ec2a4]/20 p-16 text-center shadow-soft fade-up">
