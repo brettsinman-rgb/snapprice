@@ -26,6 +26,14 @@ async function readJsonResponse(response: Response) {
   }
 }
 
+function responseErrorMessage(json: { error?: string; message?: string } | null) {
+  if (process.env.NODE_ENV !== 'production') {
+    return json?.message || json?.error || 'Could not create price alert. Please try again.';
+  }
+
+  return json?.error || 'Could not create price alert. Please try again.';
+}
+
 export default function PriceAlertButton({
   sessionId,
   query,
@@ -67,7 +75,7 @@ export default function PriceAlertButton({
         return;
       }
       if (!response.ok) {
-        throw new Error(json?.error || json?.message || 'Could not create price alert. Please try again.');
+        throw new Error(responseErrorMessage(json));
       }
       if (!json?.alert) {
         throw new Error('Could not create price alert. Please try again.');
@@ -83,7 +91,7 @@ export default function PriceAlertButton({
   };
 
   return (
-    <div className="relative">
+    <div className="relative min-w-0">
       <button
         type="button"
         disabled={!canCreate}
@@ -94,7 +102,7 @@ export default function PriceAlertButton({
       </button>
 
       {open && (
-        <div className="absolute right-0 top-12 z-30 w-[min(320px,calc(100vw-2rem))] rounded-3xl border border-[#0FF7D0]/20 bg-white p-4 text-[#262626] shadow-xl">
+        <div className="fixed left-1/2 top-24 z-50 max-h-[calc(100vh-7rem)] w-[calc(100vw-32px)] max-w-[calc(100vw-32px)] -translate-x-1/2 overflow-y-auto rounded-3xl border border-[#0FF7D0]/20 bg-white p-4 text-[#262626] shadow-xl sm:absolute sm:left-auto sm:right-0 sm:top-12 sm:max-h-none sm:w-[320px] sm:max-w-[320px] sm:translate-x-0 sm:overflow-visible">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#262626]/55">Price Alert</p>
           <p className="mt-1 text-sm font-semibold">{query}</p>
           <p className="mt-2 text-xs leading-5 text-[#262626]/58">
@@ -131,7 +139,7 @@ export default function PriceAlertButton({
       )}
 
       {message && (
-        <div className="absolute right-0 top-12 z-40 w-[min(320px,calc(100vw-2rem))] rounded-2xl border border-[#0FF7D0]/20 bg-white p-4 text-sm shadow-xl">
+        <div className="fixed left-1/2 top-24 z-50 w-[calc(100vw-32px)] max-w-[calc(100vw-32px)] -translate-x-1/2 rounded-2xl border border-[#0FF7D0]/20 bg-white p-4 text-sm shadow-xl sm:absolute sm:left-auto sm:right-0 sm:top-12 sm:w-[320px] sm:max-w-[320px] sm:translate-x-0">
           <p className="font-medium text-[#262626]">{message}</p>
           {requiresAuth && (
             <div className="mt-3 flex gap-2">

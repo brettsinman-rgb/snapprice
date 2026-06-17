@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { createClient } from '@/lib/supabase/server';
 import { findLowestResult } from '@/lib/price-alerts';
@@ -37,21 +38,27 @@ async function requireUser() {
 
 function priceAlertError(error: unknown, fallback: string, status = 500) {
   const message = error instanceof Error ? error.message : undefined;
+  if (process.env.NODE_ENV !== 'production') {
+    console.error('[PriceAlerts] API error:', message ?? error);
+  }
+
+  const prismaCode = error instanceof Prisma.PrismaClientKnownRequestError ? error.code : undefined;
   const isKnownMigrationIssue =
-    message?.includes('PriceAlert') ||
-    message?.includes('price_alerts') ||
-    message?.includes('does not exist') ||
-    message?.includes('table') ||
-    message?.includes('column');
+    prismaCode === 'P2021' ||
+    prismaCode === 'P2022' ||
+    /\bPriceAlert\b.*\b(does not exist|column|table|relation)\b/i.test(message ?? '') ||
+    /\b(notificationType|notificationStatus|notificationSentAt|triggeredPrice|triggeredProductTitle|triggeredProductUrl|triggeredProductImage)\b/i.test(message ?? '');
 
   return NextResponse.json(
     {
       error: isKnownMigrationIssue
-        ? 'Price alerts are not available yet. Please try again later.'
+        ? 'Price alerts are being updated. Please try again shortly.'
         : fallback,
       message: isKnownMigrationIssue
-        ? 'The price alert database table may not be ready.'
-        : undefined
+        ? 'The PriceAlert database schema is missing one or more required columns.'
+        : process.env.NODE_ENV !== 'production'
+          ? message
+          : undefined
     },
     { status }
   );
@@ -131,6 +138,24 @@ export async function POST(request: Request) {
         lastResultUrl: lowest.productUrl,
         lastResultPrice: lowest.price,
         lastResultImage: lowest.image
+      },
+      select: {
+        id: true,
+        userId: true,
+        searchQuery: true,
+        manufacturer: true,
+        currentLowestPrice: true,
+        targetPrice: true,
+        currency: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        lastCheckedAt: true,
+        triggeredAt: true,
+        lastResultTitle: true,
+        lastResultUrl: true,
+        lastResultPrice: true,
+        lastResultImage: true
       }
     });
 
