@@ -7,7 +7,22 @@ export type SearchQueryPlan = {
   variants: string[];
 };
 
-const PART_NUMBER_REGEX = /\b(?=[A-Z0-9 -]*\d)(?:[A-Z0-9]{2,}[ -]){1,}[A-Z0-9]{2,}\b|\b(?=[A-Z0-9]*\d)[A-Z0-9]{7,}\b/gi;
+const PART_NUMBER_REGEX = /\b(?=[A-Z0-9 -]*\d)(?:[A-Z0-9]{1,}[ -]){2,}[A-Z0-9]{2,}\b|\b(?=[A-Z0-9]*\d)[A-Z0-9]{7,}\b/gi;
+
+const MANUFACTURER_PREFIX_ALIASES: Record<string, string[]> = {
+  vag: ['VAG', 'VW', 'Audi', 'Volkswagen'],
+  vw: ['VW', 'Volkswagen', 'Audi', 'VAG'],
+  volkswagen: ['Volkswagen', 'VW', 'Audi', 'VAG'],
+  audi: ['Audi', 'VW', 'Volkswagen', 'VAG'],
+  skoda: ['Skoda', 'VW', 'Volkswagen', 'VAG'],
+  seat: ['Seat', 'VW', 'Volkswagen', 'VAG'],
+  bmw: ['BMW'],
+  mercedes: ['Mercedes'],
+  ford: ['Ford'],
+  toyota: ['Toyota']
+};
+
+const VAG_PART_PREFIXES = ['1K0', '3C0', '3Q0', '4F0', '4G0', '4H0', '4L0', '4M0', '4Z7', '5G0', '5Q0', '6R0', '7L0', '7P0', '8E0', '8K0', '8P0', '8V0'];
 
 const AUTOMOTIVE_BRANDS = [
   'acura', 'alfa', 'aston', 'audi', 'bentley', 'bmw', 'buick', 'cadillac', 'chevrolet',
@@ -43,6 +58,18 @@ function compactPartNumber(value: string) {
   return value.toUpperCase().replace(/[^A-Z0-9]/g, '');
 }
 
+function leadingManufacturerPrefix(query: string) {
+  const firstToken = query.trim().split(/\s+/)[0]?.toLowerCase();
+  if (!firstToken || !MANUFACTURER_PREFIX_ALIASES[firstToken]) return undefined;
+  return firstToken;
+}
+
+function stripLeadingManufacturerPrefix(query: string) {
+  const prefix = leadingManufacturerPrefix(query);
+  if (!prefix) return query;
+  return query.trim().replace(new RegExp(`^${prefix}\\s+`, 'i'), '');
+}
+
 function isLikelyPartNumberCandidate(value: string) {
   const compacted = compactPartNumber(value);
   if (compacted.length < 7 || !/\d/.test(compacted)) return false;
@@ -55,6 +82,17 @@ function isLikelyPartNumberCandidate(value: string) {
   return !segments.some((segment) => /^[A-Z]+$/.test(segment) && segment.length > 3);
 }
 
+function extractPartNumberMatches(query: string) {
+  const searchable = stripLeadingManufacturerPrefix(query);
+  const matches = searchable.match(PART_NUMBER_REGEX) ?? [];
+  return matches
+    .filter(isLikelyPartNumberCandidate)
+    .map((raw) => ({
+      raw: raw.replace(/\s+/g, ' ').trim(),
+      compact: compactPartNumber(raw)
+    }));
+}
+
 function uniquePush(values: string[], value: string) {
   const normalized = value.replace(/\s+/g, ' ').trim();
   if (!normalized) return;
@@ -65,9 +103,35 @@ function uniquePush(values: string[], value: string) {
 }
 
 export function extractPartNumbers(query: string): string[] {
-  const matches = query.match(PART_NUMBER_REGEX) ?? [];
-  const compacted = matches.filter(isLikelyPartNumberCandidate).map(compactPartNumber);
+  const compacted = extractPartNumberMatches(query).map((match) => match.compact);
   return Array.from(new Set(compacted));
+}
+
+function partNumberDisplayVariants(partNumber: string, raw?: string) {
+  const variants: string[] = [];
+  if (raw) uniquePush(variants, raw);
+  uniquePush(variants, partNumber);
+
+  if (partNumber.length >= 8) {
+    const grouped = [partNumber.slice(0, 3), partNumber.slice(3, 6), partNumber.slice(6, 9), partNumber.slice(9)]
+      .filter(Boolean);
+    uniquePush(variants, grouped.join(' '));
+    uniquePush(variants, grouped.join('-'));
+  }
+
+  return variants;
+}
+
+function manufacturerAliasesForQuery(original: string, partNumber: string) {
+  const prefix = leadingManufacturerPrefix(original);
+  if (prefix) return MANUFACTURER_PREFIX_ALIASES[prefix] ?? [];
+
+  const partPrefix = partNumber.slice(0, 3).toUpperCase();
+  if (VAG_PART_PREFIXES.includes(partPrefix)) {
+    return ['VW', 'Audi', 'Volkswagen', 'VAG', 'Skoda', 'Seat'];
+  }
+
+  return [];
 }
 
 function removePartNumbers(query: string, partNumbers: string[]) {
@@ -136,7 +200,8 @@ function descriptiveVariants(query: string) {
 
 export function buildSearchQueryPlan(query: string): SearchQueryPlan {
   const original = query.replace(/\s+/g, ' ').trim();
-  const partNumbers = extractPartNumbers(original);
+  const partNumberMatches = extractPartNumberMatches(original);
+  const partNumbers = Array.from(new Set(partNumberMatches.map((match) => match.compact)));
   const descriptive = removePartNumbers(original, partNumbers);
   const kind: QueryKind =
     partNumbers.length > 0 && descriptive.length > 0
@@ -148,12 +213,29 @@ export function buildSearchQueryPlan(query: string): SearchQueryPlan {
   const variants: string[] = [];
   uniquePush(variants, original);
 
-  if (kind === 'partNumber') {
-    for (const partNumber of partNumbers) uniquePush(variants, partNumber);
-  } else {
+  if (kind === 'partNumber' || kind === 'mixed') {
+    for (const partNumber of partNumbers) {
+      const raw = partNumberMatches.find((match) => match.compact === partNumber)?.raw;
+      const displayVariants = partNumberDisplayVariants(partNumber, raw);
+      const preferredDisplay = displayVariants.find((variant) => variant.includes(' ')) ?? raw ?? partNumber;
+
+      for (const variant of displayVariants) uniquePush(variants, variant);
+
+      for (const alias of manufacturerAliasesForQuery(original, partNumber)) {
+        uniquePush(variants, `${alias} ${preferredDisplay}`);
+      }
+    }
+  }
+
+  if (kind === 'descriptive') {
     for (const variant of descriptiveVariants(descriptive || original)) uniquePush(variants, variant);
-    if (kind === 'mixed') {
-      for (const partNumber of partNumbers) uniquePush(variants, partNumber);
+  } else {
+    const descriptiveWithoutPrefixes = descriptive
+      .split(/\s+/)
+      .filter((token) => !MANUFACTURER_PREFIX_ALIASES[token.toLowerCase()])
+      .join(' ');
+    if (descriptiveWithoutPrefixes.trim().length > 2) {
+      for (const variant of descriptiveVariants(descriptiveWithoutPrefixes)) uniquePush(variants, variant);
     }
   }
 
@@ -161,6 +243,6 @@ export function buildSearchQueryPlan(query: string): SearchQueryPlan {
     original,
     kind,
     partNumbers,
-    variants: variants.slice(0, kind === 'partNumber' ? 3 : 8)
+    variants: variants.slice(0, kind === 'partNumber' ? 10 : 12)
   };
 }
