@@ -210,12 +210,6 @@ export default async function Home() {
               </p>
             </section>
           )}
-          <AdSlot
-            size="970x250"
-            mobileSize="320x100"
-            placement="home-hero-banner"
-            className="py-1"
-          />
           {user && previousSearches.length > 0 && (
             <section className="rounded-3xl border border-[#5ec2a4] bg-white/80 px-6 py-5 shadow-soft fade-up fade-up-delay-1">
               <div className="mb-4 flex items-end justify-between gap-4">
@@ -266,7 +260,6 @@ export default async function Home() {
               </div>
             </section>
           )}
-          <AdSlot size="970x250" mobileSize="320x100" placement="home-mid-banner" className="py-2" />
           <div className="rounded-3xl border border-[#5ec2a4] bg-white/80 px-6 py-10 shadow-soft fade-up fade-up-delay-1">
             <div className="mx-auto max-w-3xl text-center">
               <p className="display-font text-xl font-semibold text-[#262626] md:text-2xl">
@@ -274,6 +267,7 @@ export default async function Home() {
               </p>
             </div>
           </div>
+          <AdSlot size="970x250" mobileSize="320x100" placement="home-mid-banner" className="py-2" />
           <AutoBrandTicker />
         </div>
       </div>
