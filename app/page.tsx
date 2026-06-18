@@ -224,15 +224,12 @@ export default async function Home() {
           </div>
           {!user && (
             <section className="flex min-h-[76px] items-center justify-center px-4 text-center fade-up fade-up-delay-1">
-              <p className="max-w-3xl text-sm font-normal leading-6 text-[#262626]/65 sm:text-[15px]">
-                Save searches, track prices and access results across all devices.{' '}
-                <Link
-                  href="/auth/signup"
-                  className="font-medium text-[#262626] underline decoration-[#0FF7D0]/45 underline-offset-4 transition hover:text-[#0CC6A6] hover:decoration-[#0FF7D0]"
-                >
-                  Create a free account →
-                </Link>
-              </p>
+              <Link
+                href="/auth/signup"
+                className="inline-block rounded-sm bg-[#0FF7D0] px-3 py-1.5 text-sm font-medium leading-6 text-[#111111] transition hover:bg-[#0CC6A6] sm:text-[15px]"
+              >
+                Save searches, create Price Alerts and build your Garage. <span className="underline-offset-4 hover:underline">Create a free account</span> →
+              </Link>
             </section>
           )}
           {user && garageVehicles.length > 0 && (
