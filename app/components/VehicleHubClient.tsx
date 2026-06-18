@@ -24,6 +24,7 @@ type VehicleAlert = {
   targetPrice?: number | null;
   currency: string;
   status: string;
+  lastCheckedAt?: string | Date | null;
 };
 
 type VehicleSearch = {
@@ -77,6 +78,13 @@ function formatPrice(value: number | null | undefined, currency = 'USD') {
   } catch {
     return `${currency} ${value.toFixed(2)}`;
   }
+}
+
+function formatCheckedDate(value: string | Date | null | undefined) {
+  if (!value) return 'Not checked yet';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Not checked yet';
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 function VehicleHeroImage({ vehicle }: { vehicle: VehicleHubVehicle }) {
@@ -195,7 +203,7 @@ async function readApiJson(response: Response) {
   const text = await response.text().catch(() => '');
   if (!text) return null;
   try {
-    return JSON.parse(text) as { error?: string; sessionId?: string; alert?: VehicleAlert };
+    return JSON.parse(text) as { error?: string; sessionId?: string; alert?: VehicleAlert; checked?: number; triggered?: number };
   } catch {
     return null;
   }
@@ -221,6 +229,7 @@ export default function VehicleHubClient({
   const [searchingPart, setSearchingPart] = useState<string | null>(null);
   const [creatingAlert, setCreatingAlert] = useState(false);
   const [creatingRecommendationAlert, setCreatingRecommendationAlert] = useState<string | null>(null);
+  const [checkingAlerts, setCheckingAlerts] = useState(false);
   const [updatingAlertId, setUpdatingAlertId] = useState<string | null>(null);
   const [deletingAlertId, setDeletingAlertId] = useState<string | null>(null);
   const searchPrefix = vehicleSearchPrefix(vehicle);
@@ -341,6 +350,32 @@ export default function VehicleHubClient({
     }
   };
 
+  const checkVehicleAlerts = async () => {
+    setMessage(null);
+    setCheckingAlerts(true);
+    try {
+      const response = await fetch(`/api/garage/${vehicle.id}/price-alerts/check`, { method: 'POST' });
+      const json = await readApiJson(response);
+      if (!response.ok) {
+        setMessage(json?.error || 'Could not check Vehicle Hub Price Alerts.');
+        return;
+      }
+      const checked = json?.checked ?? 0;
+      const triggered = json?.triggered ?? 0;
+      setMessage(
+        checked === 0
+          ? 'No active Vehicle Hub Price Alerts need checking right now.'
+          : triggered > 0
+            ? `${triggered} Price Alert triggered. Refresh this page to see the latest alert status.`
+            : 'Vehicle Hub Price Alerts checked. Refresh this page to see the latest prices.'
+      );
+    } catch {
+      setMessage('Could not check Vehicle Hub Price Alerts.');
+    } finally {
+      setCheckingAlerts(false);
+    }
+  };
+
   return (
     <div className="space-y-6 sm:space-y-8">
       <section className="overflow-hidden rounded-[32px] bg-[#111111] text-white shadow-[0_28px_90px_-52px_rgba(17,17,17,0.9)] sm:rounded-[36px]">
@@ -426,7 +461,10 @@ export default function VehicleHubClient({
               <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#0CC6A6]">Price Alerts</p>
               <h2 className="mt-1 text-2xl font-bold text-[#111111]">Track prices for this vehicle</h2>
             </div>
-            <span className="text-xs font-semibold text-[#262626]/45">{alertItems.length} alerts</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-semibold text-[#262626]/45">{alertItems.length} alerts</span>
+              <button type="button" disabled={checkingAlerts || alertItems.length === 0} onClick={() => void checkVehicleAlerts()} className="h-9 rounded-full border border-[#262626]/12 px-4 text-[11px] font-bold uppercase tracking-[0.14em] text-[#262626] transition hover:border-[#0FF7D0]/60 hover:bg-white disabled:cursor-not-allowed disabled:opacity-50">{checkingAlerts ? 'Checking...' : 'Check Now'}</button>
+            </div>
           </div>
           <div className="mt-4 space-y-3">
             {alertItems.length === 0 ? (
@@ -439,7 +477,10 @@ export default function VehicleHubClient({
                       <h3 className="break-words font-bold text-[#111111]">{shortPartName(alert.searchQuery, searchPrefix)}</h3>
                       <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#262626]/52">{alert.status}</span>
                     </div>
-                    <p className="mt-1 text-xs font-semibold text-[#262626]/55">Current: {formatPrice(alert.currentLowestPrice, alert.currency)} / Target: {formatPrice(alert.targetPrice, alert.currency)}</p>
+                    <p className="mt-1 text-xs font-semibold text-[#262626]/55">Target: {formatPrice(alert.targetPrice, alert.currency)}</p>
+                    <p className="mt-1 text-xs font-semibold text-[#262626]/55">Current: {alert.currentLowestPrice == null ? 'Current price not available yet' : formatPrice(alert.currentLowestPrice, alert.currency)}</p>
+                    <p className="mt-1 text-xs font-medium text-[#262626]/45">Last checked: {formatCheckedDate(alert.lastCheckedAt)}</p>
+                    <p className="mt-2 text-xs font-medium text-[#262626]/45">PartsSeekr monitors this alert for your saved vehicle.</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <button type="button" disabled={updatingAlertId === alert.id || deletingAlertId === alert.id} onClick={() => updateAlertStatus(alert.id, alert.status === 'active' ? 'paused' : 'active')} className="h-9 rounded-full border border-[#262626]/12 px-4 text-[11px] font-bold uppercase tracking-[0.14em] text-[#262626] transition hover:border-[#0FF7D0]/60 hover:bg-white disabled:cursor-not-allowed disabled:opacity-50">{updatingAlertId === alert.id ? 'Updating...' : alert.status === 'active' ? 'Pause Alert' : 'Resume Alert'}</button>
