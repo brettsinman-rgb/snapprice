@@ -13,6 +13,8 @@ export type GarageVehicleItem = {
   series?: string | null;
   engine?: string | null;
   badge?: string | null;
+  imageUrl?: string | null;
+  vehicleSlug?: string | null;
   createdAt?: string;
   updatedAt?: string;
   stats?: GarageVehicleStats;
@@ -265,7 +267,7 @@ export default function GarageManager({ initialVehicles }: { initialVehicles: Ga
                 </div>
 
                 <div className="mt-5 flex flex-wrap gap-2">
-                  <Link href={`/?vehicle=${encodeURIComponent(`${vehicle.year} ${vehicle.make} ${vehicle.model}`)}`} className="inline-flex h-9 flex-1 items-center justify-center rounded-full bg-[#111111] px-4 text-[11px] font-bold uppercase tracking-[0.14em] text-white transition hover:bg-[#0FF7D0] hover:text-[#07181b]">
+                  <Link href={`/garage/${vehicle.id}`} className="inline-flex h-9 flex-1 items-center justify-center rounded-full bg-[#111111] px-4 text-[11px] font-bold uppercase tracking-[0.14em] text-white transition hover:bg-[#0FF7D0] hover:text-[#07181b]">
                     View Parts
                   </Link>
                   <button type="button" onClick={() => editVehicle(vehicle)} className="h-9 rounded-full border border-[#262626]/12 px-4 text-[11px] font-bold uppercase tracking-[0.14em] text-[#262626] transition hover:border-[#0FF7D0]/60 hover:bg-[#0FF7D0]/10">

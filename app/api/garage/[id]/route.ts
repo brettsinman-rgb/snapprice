@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { createClient } from '@/lib/supabase/server';
+import { vehicleSlug } from '@/lib/garage-vehicles';
 
 type GarageVehiclePayload = {
   make?: unknown;
@@ -9,6 +10,7 @@ type GarageVehiclePayload = {
   series?: unknown;
   engine?: unknown;
   badge?: unknown;
+  imageUrl?: unknown;
 };
 
 async function currentUserId() {
@@ -44,7 +46,9 @@ function parseGarageVehicle(body: GarageVehiclePayload) {
       year,
       series: optionalString(body.series),
       engine: optionalString(body.engine),
-      badge: optionalString(body.badge)
+      badge: optionalString(body.badge),
+      imageUrl: optionalString(body.imageUrl),
+      vehicleSlug: vehicleSlug({ make, model, year, badge: optionalString(body.badge), series: optionalString(body.series), engine: optionalString(body.engine) })
     }
   };
 }

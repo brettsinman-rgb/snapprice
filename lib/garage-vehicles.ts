@@ -28,6 +28,55 @@ export function vehicleMatchText(vehicle: { make: string; model: string }) {
   return `${vehicle.make} ${vehicle.model}`.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
 
+export function vehicleDisplayName(vehicle: {
+  year?: number | null;
+  make: string;
+  model: string;
+  badge?: string | null;
+  series?: string | null;
+  engine?: string | null;
+}) {
+  return [
+    vehicle.year,
+    vehicle.make,
+    vehicle.model,
+    vehicle.badge,
+    vehicle.series,
+    vehicle.engine
+  ].filter(Boolean).join(' ');
+}
+
+export function vehicleSearchPrefix(vehicle: {
+  make: string;
+  model: string;
+  badge?: string | null;
+  series?: string | null;
+  engine?: string | null;
+}) {
+  return [
+    vehicle.make,
+    vehicle.model,
+    vehicle.badge,
+    vehicle.series,
+    vehicle.engine
+  ].filter(Boolean).join(' ');
+}
+
+export function vehicleSlug(vehicle: {
+  year?: number | null;
+  make: string;
+  model: string;
+  badge?: string | null;
+  series?: string | null;
+  engine?: string | null;
+}) {
+  return vehicleDisplayName(vehicle)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 96);
+}
+
 export function textMatchesVehicle(text: string | null | undefined, vehicle: { make: string; model: string }) {
   if (!text) return false;
   const normalizedText = text.toLowerCase().replace(/[^a-z0-9]+/g, ' ');

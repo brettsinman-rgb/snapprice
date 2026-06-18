@@ -32,6 +32,7 @@ model SearchSession {
   status    String
   results   SearchResult[]
   clicks    ClickEvent[]
+  vehicleSearches VehicleSearch[]
 
   @@index([userId])
   @@index([status])
@@ -99,6 +100,7 @@ model PriceAlert {
   triggeredProductUrl   String?
   triggeredProductImage String?
   user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehiclePriceAlerts VehiclePriceAlert[]
 
   @@index([userId])
   @@index([status])
@@ -114,10 +116,41 @@ model GarageVehicle {
   series    String?
   engine    String?
   badge     String?
+  imageUrl  String?
+  vehicleSlug String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicleSearches VehicleSearch[]
+  vehiclePriceAlerts VehiclePriceAlert[]
 
   @@index([userId])
   @@index([make, model, year])
+  @@index([vehicleSlug])
+}
+
+model VehicleSearch {
+  id              String        @id @default(cuid())
+  garageVehicleId String
+  searchSessionId String
+  createdAt       DateTime      @default(now())
+  garageVehicle   GarageVehicle @relation(fields: [garageVehicleId], references: [id], onDelete: Cascade)
+  searchSession   SearchSession @relation(fields: [searchSessionId], references: [id], onDelete: Cascade)
+
+  @@index([garageVehicleId])
+  @@index([searchSessionId])
+  @@unique([garageVehicleId, searchSessionId])
+}
+
+model VehiclePriceAlert {
+  id              String        @id @default(cuid())
+  garageVehicleId String
+  priceAlertId    String
+  createdAt       DateTime      @default(now())
+  garageVehicle   GarageVehicle @relation(fields: [garageVehicleId], references: [id], onDelete: Cascade)
+  priceAlert      PriceAlert    @relation(fields: [priceAlertId], references: [id], onDelete: Cascade)
+
+  @@index([garageVehicleId])
+  @@index([priceAlertId])
+  @@unique([garageVehicleId, priceAlertId])
 }
