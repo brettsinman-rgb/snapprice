@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { manufacturerLogo, vehicleDisplayName, vehicleSearchPrefix, type GarageVehicleStats } from '@/lib/garage-vehicles';
+import { vehicleDisplayName, vehicleSearchPrefix, type GarageVehicleStats } from '@/lib/garage-vehicles';
 
 type VehicleHubVehicle = {
   id: string;
@@ -71,30 +71,11 @@ function formatCheckedDate(value: string | Date | null | undefined) {
 }
 
 function VehicleHeroImage({ vehicle }: { vehicle: VehicleHubVehicle }) {
-  const logo = manufacturerLogo(vehicle.make);
-
   if (vehicle.imageUrl) {
     return <Image src={vehicle.imageUrl} alt={vehicleDisplayName(vehicle)} fill sizes="(max-width: 768px) 100vw, 420px" className="object-cover" />;
   }
 
-  return (
-    <div className="relative flex h-full min-h-[240px] items-center justify-center overflow-hidden bg-[linear-gradient(135deg,#101010_0%,#181a18_52%,#0b2a25_100%)] px-6">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_28%_18%,rgba(15,247,208,0.18),transparent_36%)]" />
-      <div className="absolute bottom-8 left-1/2 h-24 w-[78%] -translate-x-1/2 rounded-full bg-[#0FF7D0]/10 blur-3xl" />
-      <svg viewBox="0 0 420 150" className="absolute bottom-10 left-1/2 w-[88%] -translate-x-1/2 text-white/10" fill="none" aria-hidden="true">
-        <path d="M64 95c24-38 50-55 91-55h95c43 0 77 20 110 55h28c12 0 22 10 22 22v6H14v-6c0-12 10-22 22-22h28Z" fill="currentColor" />
-        <circle cx="121" cy="120" r="22" fill="#111111" />
-        <circle cx="318" cy="120" r="22" fill="#111111" />
-      </svg>
-      <div className="relative flex h-28 w-28 items-center justify-center rounded-[34px] bg-white/8 ring-1 ring-white/12 backdrop-blur">
-        {logo ? (
-          <Image src={logo} alt={`${vehicle.make} logo`} fill sizes="112px" className="object-contain p-6" />
-        ) : (
-          <span className="text-4xl font-bold text-[#0FF7D0]">{vehicle.make.slice(0, 1).toUpperCase()}</span>
-        )}
-      </div>
-    </div>
-  );
+  return <Image src="/vehicles/placeholder.jpg" alt={`${vehicle.make} ${vehicle.model}`} fill sizes="(max-width: 768px) 100vw, 420px" className="object-cover" priority />;
 }
 
 function PartIcon({ icon }: { icon: string }) {
@@ -306,15 +287,17 @@ export default function VehicleHubClient({
             {(vehicle.badge || vehicle.series || vehicle.engine) && (
               <p className="mt-3 text-lg font-medium text-white/68">{[vehicle.badge, vehicle.series, vehicle.engine].filter(Boolean).join(' / ')}</p>
             )}
-            <div className="mt-7 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="mt-7 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
               {[
-                ['Active Price Alerts', stats.activePriceAlerts],
-                ['Saved Searches', stats.savedSearches],
-                ['Triggered Alerts', stats.triggeredAlerts]
+                ['Active Alert', stats.activePriceAlerts],
+                ['Search', stats.savedSearches],
+                ['Triggered', stats.triggeredAlerts]
               ].map(([label, value]) => (
-                <div key={label} className="rounded-[20px] bg-white/7 p-3.5 ring-1 ring-white/10">
-                  <p className="text-2xl font-bold text-[#0FF7D0]">{value}</p>
-                  <p className="mt-1 text-[10px] font-bold uppercase leading-4 tracking-[0.14em] text-white/52">{label}</p>
+                <div key={label} className="inline-flex items-center gap-2 rounded-full bg-white/8 px-3.5 py-2 ring-1 ring-white/10">
+                  <span className="text-base font-bold text-[#0FF7D0]">{value}</span>
+                  <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/58">
+                    {label}{Number(value) === 1 ? '' : 's'}
+                  </span>
                 </div>
               ))}
             </div>
