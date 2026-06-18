@@ -25,22 +25,14 @@ type VehicleAlert = {
   currency: string;
   status: string;
   lastCheckedAt?: string | Date | null;
+  triggeredPrice?: number | null;
+  triggeredProductUrl?: string | null;
 };
 
 type VehicleSearch = {
   id: string;
   query: string | null;
   createdAt: string;
-};
-
-type VehicleRecommendation = {
-  id: string;
-  title: string;
-  detail: string;
-  partName: string;
-  action: 'search' | 'alert';
-  score: number;
-  reason: string;
 };
 
 const POPULAR_PARTS = [
@@ -56,15 +48,6 @@ const POPULAR_PARTS = [
   { name: 'Alternator', category: 'Electrical', icon: 'bolt' },
   { name: 'Starter Motor', category: 'Electrical', icon: 'bolt' },
   { name: 'Turbocharger', category: 'Performance', icon: 'turbo' }
-];
-
-const COMMON_RECOMMENDATION_PARTS = [
-  { partName: 'Brake Pads', title: 'Set alerts for brake pads', detail: 'Common wear item worth tracking before you need it urgently.', reason: 'Common replacement part', baseScore: 72, action: 'alert' as const },
-  { partName: 'Oil Filter', title: 'Compare oil filters for this vehicle', detail: 'Quickly compare service parts with fitment already included.', reason: 'Maintenance prompt', baseScore: 66, action: 'search' as const },
-  { partName: 'Air Filter', title: 'Check air filter options', detail: 'A simple service part that is easy to price-check across sellers.', reason: 'Maintenance prompt', baseScore: 58, action: 'search' as const },
-  { partName: 'Battery', title: 'Track battery prices', detail: 'Electrical parts can vary widely by brand and availability.', reason: 'Popular vehicle part', baseScore: 56, action: 'alert' as const },
-  { partName: 'Wiper Blades', title: 'Check wiper blades before rain season', detail: 'A small part that is easy to forget until weather changes.', reason: 'Seasonal maintenance', baseScore: 52, action: 'search' as const },
-  { partName: 'Headlights', title: 'Create a headlight Price Alert', detail: 'Lighting parts can be expensive, so alerts are useful when prices move.', reason: 'Popular vehicle part', baseScore: 50, action: 'alert' as const }
 ];
 
 function formatPrice(value: number | null | undefined, currency = 'USD') {
@@ -133,72 +116,6 @@ function shortPartName(query: string, prefix: string) {
   return query.replace(prefix, '').trim() || query;
 }
 
-function normalizePartText(value: string) {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-}
-
-function buildRecommendations({
-  alerts,
-  searches,
-  searchPrefix
-}: {
-  alerts: VehicleAlert[];
-  searches: VehicleSearch[];
-  searchPrefix: string;
-}) {
-  const activeAlertText = alerts
-    .filter((alert) => alert.status === 'active' || alert.status === 'paused')
-    .map((alert) => normalizePartText(shortPartName(alert.searchQuery, searchPrefix)));
-  const recentParts = searches
-    .map((search) => shortPartName(search.query ?? '', searchPrefix))
-    .filter(Boolean)
-    .slice(0, 4);
-
-  const hasAlertForPart = (partName: string) => {
-    const normalizedPart = normalizePartText(partName);
-    return activeAlertText.some((alertText) => alertText.includes(normalizedPart) || normalizedPart.includes(alertText));
-  };
-
-  const recommendations: VehicleRecommendation[] = [];
-
-  recentParts.forEach((partName, index) => {
-    const normalizedPart = normalizePartText(partName);
-    if (!normalizedPart || hasAlertForPart(partName)) return;
-    recommendations.push({
-      id: `recent-${normalizedPart}`,
-      title: `You searched ${partName} recently`,
-      detail: 'Create a Price Alert so PartsSeekr can watch matching listings for this vehicle.',
-      partName,
-      action: 'alert',
-      score: 90 - index * 4,
-      reason: 'Recent search without alert'
-    });
-  });
-
-  COMMON_RECOMMENDATION_PARTS.forEach((item) => {
-    const hasAlert = hasAlertForPart(item.partName);
-    const seasonalBoost = item.partName === 'Wiper Blades' && [10, 11, 0, 1, 2].includes(new Date().getMonth()) ? 14 : 0;
-
-    recommendations.push({
-      id: `common-${normalizePartText(item.partName)}`,
-      title: alerts.length === 0 && item.action === 'alert' ? `No alerts yet — track ${item.partName.toLowerCase()}` : item.title,
-      detail: hasAlert ? 'You already have an alert here, but you can still run a fresh comparison.' : item.detail,
-      partName: item.partName,
-      action: hasAlert ? 'search' : item.action,
-      // V1 scoring is intentionally transparent and local: recent searches rank highest,
-      // missing alerts get a boost, common service parts provide the baseline, and seasonal
-      // prompts can temporarily rise. This can later be swapped for AI or marketplace signals.
-      score: item.baseScore + (hasAlert ? -18 : 10) + seasonalBoost,
-      reason: hasAlert ? 'Alert already active' : item.reason
-    });
-  });
-
-  return recommendations
-    .sort((a, b) => b.score - a.score)
-    .filter((recommendation, index, list) => list.findIndex((item) => normalizePartText(item.partName) === normalizePartText(recommendation.partName)) === index)
-    .slice(0, 5);
-}
-
 async function readApiJson(response: Response) {
   const text = await response.text().catch(() => '');
   if (!text) return null;
@@ -228,12 +145,13 @@ export default function VehicleHubClient({
   const [message, setMessage] = useState<string | null>(null);
   const [searchingPart, setSearchingPart] = useState<string | null>(null);
   const [creatingAlert, setCreatingAlert] = useState(false);
-  const [creatingRecommendationAlert, setCreatingRecommendationAlert] = useState<string | null>(null);
   const [checkingAlerts, setCheckingAlerts] = useState(false);
   const [updatingAlertId, setUpdatingAlertId] = useState<string | null>(null);
   const [deletingAlertId, setDeletingAlertId] = useState<string | null>(null);
   const searchPrefix = vehicleSearchPrefix(vehicle);
-  const recommendations = buildRecommendations({ alerts: alertItems, searches, searchPrefix });
+  const activeAlerts = alertItems.filter((alert) => alert.status === 'active').slice(0, 3);
+  const triggeredAlerts = alertItems.filter((alert) => alert.status === 'triggered').slice(0, 3);
+  const recentSearches = searches.filter((search) => search.query).slice(0, 5);
 
   const launchSearch = async (part: string) => {
     const term = part.trim();
@@ -298,15 +216,6 @@ export default function VehicleHubClient({
       }
     } finally {
       setCreatingAlert(false);
-    }
-  };
-
-  const createRecommendationAlert = async (partName: string) => {
-    setCreatingRecommendationAlert(partName);
-    try {
-      await createAlertForPart(partName);
-    } finally {
-      setCreatingRecommendationAlert(null);
     }
   };
 
@@ -504,54 +413,70 @@ export default function VehicleHubClient({
         </div>
       </section>
 
-      <section className="grid gap-5 lg:grid-cols-2">
-        <div className="rounded-[32px] bg-white/86 p-5 shadow-sm ring-1 ring-black/5">
-          <div className="flex items-end justify-between gap-3">
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#0CC6A6]">Recent Searches</p>
-              <h2 className="mt-1 text-2xl font-bold text-[#111111]">Reuse a vehicle search</h2>
-            </div>
+      <section className="rounded-[32px] bg-white/86 p-5 shadow-sm ring-1 ring-black/5">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#0CC6A6]">Vehicle Activity</p>
+            <h2 className="mt-1 text-2xl font-bold text-[#111111]">Recent activity for this vehicle</h2>
           </div>
-          <div className="mt-4 space-y-2">
-            {searches.length === 0 ? <p className="rounded-[20px] bg-[#f8f9f6] p-4 text-sm font-medium text-[#262626]/55">Searches launched from this vehicle will appear here so you can rerun them in one tap.</p> : searches.map((search) => (
-              <button key={search.id} type="button" disabled={searchingPart !== null || !search.query} onClick={() => search.query && void launchSearch(search.query.replace(searchPrefix, '').trim() || search.query)} className="block w-full rounded-[20px] bg-[#f8f9f6] p-4 text-left text-sm font-bold text-[#111111] transition hover:bg-white hover:ring-1 hover:ring-[#0FF7D0]/45 disabled:cursor-not-allowed disabled:opacity-60">
-                <span className="block break-words">{shortPartName(search.query ?? '', searchPrefix)}</span>
-                <span className="mt-1 block text-xs font-medium text-[#262626]/42">{new Date(search.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-              </button>
-            ))}
-          </div>
+          <p className="text-xs font-semibold text-[#262626]/45">Alerts, triggered deals and searches</p>
         </div>
 
-        <div className="rounded-[32px] bg-white/86 p-5 shadow-sm ring-1 ring-black/5">
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#0CC6A6]">Recommendations</p>
-          <h2 className="mt-1 text-2xl font-bold text-[#111111]">Recommended next moves</h2>
-          <p className="mt-2 text-sm font-medium leading-6 text-[#262626]/55">Vehicle-specific prompts based on common service parts, recent searches, and missing Price Alerts.</p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-            {recommendations.length === 0 ? (
-              <div className="rounded-[20px] bg-[#f8f9f6] p-4">
-                <p className="font-bold text-[#111111]">Start with a vehicle search</p>
-                <p className="mt-1 text-xs font-medium leading-5 text-[#262626]/50">Search for a part above and PartsSeekr will begin tailoring suggestions for this vehicle.</p>
-              </div>
-            ) : recommendations.map((item) => (
-              <article key={item.id} className="rounded-[22px] bg-[#f8f9f6] p-4 ring-1 ring-black/5">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="break-words font-bold text-[#111111]">{item.title}</p>
-                    <p className="mt-1 text-xs font-medium leading-5 text-[#262626]/50">{item.detail}</p>
-                    <p className="mt-3 text-[10px] font-bold uppercase tracking-[0.14em] text-[#0CC6A6]">{item.reason}</p>
-                  </div>
-                  <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-[#262626]/45">{item.score}</span>
-                </div>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <button type="button" disabled={searchingPart !== null} onClick={() => void launchSearch(item.partName)} className="h-9 rounded-full border border-[#262626]/12 px-4 text-[11px] font-bold uppercase tracking-[0.14em] text-[#262626] transition hover:border-[#0FF7D0]/60 hover:bg-white disabled:cursor-not-allowed disabled:opacity-50">
-                    Search
-                  </button>
-                  <button type="button" disabled={creatingRecommendationAlert === item.partName || creatingAlert} onClick={() => item.action === 'alert' ? void createRecommendationAlert(item.partName) : void launchSearch(item.partName)} className="h-9 rounded-full bg-[#111111] px-4 text-[11px] font-bold uppercase tracking-[0.14em] text-white transition hover:bg-[#0FF7D0] hover:text-[#07181b] disabled:cursor-not-allowed disabled:opacity-50">
-                    {creatingRecommendationAlert === item.partName ? 'Creating...' : item.action === 'alert' ? 'Create Alert' : 'Compare Prices'}
-                  </button>
-                </div>
-              </article>
-            ))}
+        <div className="mt-5 grid gap-4 lg:grid-cols-3">
+          <div className="rounded-[24px] bg-[#f8f9f6] p-4">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-sm font-bold text-[#111111]">Active Price Alerts</h3>
+              <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-[#262626]/45">{activeAlerts.length}</span>
+            </div>
+            <div className="mt-3 space-y-3">
+              {activeAlerts.length === 0 ? (
+                <p className="text-sm font-medium leading-6 text-[#262626]/52">No active alerts yet.</p>
+              ) : activeAlerts.map((alert) => (
+                <article key={alert.id} className="border-t border-black/5 pt-3 first:border-t-0 first:pt-0">
+                  <p className="break-words text-sm font-bold text-[#111111]">{shortPartName(alert.searchQuery, searchPrefix)}</p>
+                  <p className="mt-1 text-xs font-medium text-[#262626]/52">Target: {formatPrice(alert.targetPrice, alert.currency)}</p>
+                  <p className="mt-1 text-xs font-medium text-[#262626]/52">Current: {alert.currentLowestPrice == null ? 'Not available yet' : formatPrice(alert.currentLowestPrice, alert.currency)}</p>
+                  <p className="mt-1 text-xs font-medium text-[#262626]/42">Last checked: {formatCheckedDate(alert.lastCheckedAt)}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-[24px] bg-[#f8f9f6] p-4">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-sm font-bold text-[#111111]">Triggered Alerts</h3>
+              <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-[#262626]/45">{triggeredAlerts.length}</span>
+            </div>
+            <div className="mt-3 space-y-3">
+              {triggeredAlerts.length === 0 ? (
+                <p className="text-sm font-medium leading-6 text-[#262626]/52">No triggered alerts yet.</p>
+              ) : triggeredAlerts.map((alert) => (
+                <article key={alert.id} className="border-t border-black/5 pt-3 first:border-t-0 first:pt-0">
+                  <p className="break-words text-sm font-bold text-[#111111]">{shortPartName(alert.searchQuery, searchPrefix)}</p>
+                  <p className="mt-1 text-xs font-medium text-[#262626]/52">Triggered: {formatPrice(alert.triggeredPrice, alert.currency)}</p>
+                  {alert.triggeredProductUrl ? (
+                    <a href={alert.triggeredProductUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex text-xs font-bold text-[#0CC6A6] hover:text-[#111111]">View deal</a>
+                  ) : null}
+                </article>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-[24px] bg-[#f8f9f6] p-4">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-sm font-bold text-[#111111]">Recent Searches</h3>
+              <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold text-[#262626]/45">{recentSearches.length}</span>
+            </div>
+            <div className="mt-3 space-y-2">
+              {recentSearches.length === 0 ? (
+                <p className="text-sm font-medium leading-6 text-[#262626]/52">No recent vehicle searches.</p>
+              ) : recentSearches.map((search) => (
+                <button key={search.id} type="button" disabled={searchingPart !== null || !search.query} onClick={() => search.query && void launchSearch(search.query.replace(searchPrefix, '').trim() || search.query)} className="block w-full border-t border-black/5 pt-2 text-left first:border-t-0 first:pt-0 disabled:cursor-not-allowed disabled:opacity-60">
+                  <span className="block break-words text-sm font-bold text-[#111111]">{shortPartName(search.query ?? '', searchPrefix)}</span>
+                  <span className="mt-1 block text-xs font-medium text-[#262626]/42">{new Date(search.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </section>

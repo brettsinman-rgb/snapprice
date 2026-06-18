@@ -48,7 +48,9 @@ export default async function VehicleHubPage({
         targetPrice: true,
         currency: true,
         status: true,
-        lastCheckedAt: true
+        lastCheckedAt: true,
+        triggeredPrice: true,
+        triggeredProductUrl: true
       }
     }).catch(() => [])
   ]);
