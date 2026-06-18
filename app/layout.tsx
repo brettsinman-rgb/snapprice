@@ -28,6 +28,15 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           {`window.googletag = window.googletag || { cmd: [] };`}
         </Script>
         {children}
+        <footer className="px-4 py-6 text-center text-xs font-medium text-[#262626]/45 sm:text-sm">
+          Questions or feedback?{' '}
+          <a
+            href="mailto:brett@partsseekr.com"
+            className="text-[#262626]/65 underline-offset-4 transition hover:text-[#0CC6A6] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0FF7D0]/50"
+          >
+            Contact us
+          </a>
+        </footer>
         <PriceAlertNotifications />
         <Analytics />
       </body>
