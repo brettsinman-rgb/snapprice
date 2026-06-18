@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { vehicleDisplayName, vehicleSearchPrefix, type GarageVehicleStats } from '@/lib/garage-vehicles';
+import { getVehicleImage, vehicleDisplayName, vehicleSearchPrefix, type GarageVehicleStats } from '@/lib/garage-vehicles';
 
 type VehicleHubVehicle = {
   id: string;
@@ -71,11 +71,12 @@ function formatCheckedDate(value: string | Date | null | undefined) {
 }
 
 function VehicleHeroImage({ vehicle }: { vehicle: VehicleHubVehicle }) {
-  if (vehicle.imageUrl) {
-    return <Image src={vehicle.imageUrl} alt={vehicleDisplayName(vehicle)} fill sizes="(max-width: 768px) 100vw, 420px" className="object-cover" />;
-  }
-
-  return <Image src="/vehicles/placeholder.jpg" alt={`${vehicle.make} ${vehicle.model}`} fill sizes="(max-width: 768px) 100vw, 420px" className="object-cover" priority />;
+  return (
+    <>
+      <Image src={getVehicleImage(vehicle)} alt={vehicleDisplayName(vehicle)} fill sizes="(max-width: 768px) 100vw, 420px" className="object-cover" priority />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/15 to-black/25" />
+    </>
+  );
 }
 
 function PartIcon({ icon }: { icon: string }) {

@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
-import { manufacturerLogo, type GarageVehicleStats } from '@/lib/garage-vehicles';
+import { getVehicleImage, type GarageVehicleStats } from '@/lib/garage-vehicles';
 
 export type GarageVehicleItem = {
   id: string;
@@ -60,28 +60,10 @@ async function readJson(response: Response) {
 }
 
 function VehicleVisual({ vehicle }: { vehicle: GarageVehicleItem }) {
-  const logo = manufacturerLogo(vehicle.make);
-
   return (
-    <div className="relative h-36 overflow-hidden rounded-[26px] bg-[#111111] p-5 sm:h-40">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(15,247,208,0.22),transparent_34%),linear-gradient(135deg,rgba(255,255,255,0.12),transparent_42%)]" />
-      <div className="absolute bottom-4 left-5 right-5 h-px bg-[#0FF7D0]/45" />
-      {logo ? (
-        <div className="relative z-10 flex h-full items-center justify-center">
-          <div className="relative h-20 w-32 opacity-95">
-            <Image src={logo} alt={`${vehicle.make} logo`} fill sizes="128px" className="object-contain" />
-          </div>
-        </div>
-      ) : (
-        <div className="relative z-10 flex h-full items-end justify-center text-[#0FF7D0]/72">
-          <svg viewBox="0 0 260 96" className="h-24 w-full" fill="none" aria-hidden="true">
-            <path d="M34 60c12-23 26-34 50-34h56c24 0 45 13 64 34h18c8 0 14 6 14 14v4H22v-4c0-8 5-14 12-14Z" stroke="currentColor" strokeWidth="6" strokeLinejoin="round" />
-            <path d="M83 28 66 58M147 28l31 30" stroke="currentColor" strokeWidth="5" strokeLinecap="round" />
-            <circle cx="72" cy="78" r="13" stroke="currentColor" strokeWidth="6" />
-            <circle cx="194" cy="78" r="13" stroke="currentColor" strokeWidth="6" />
-          </svg>
-        </div>
-      )}
+    <div className="relative h-36 overflow-hidden rounded-t-[26px] bg-[#111111] sm:h-40">
+      <Image src={getVehicleImage(vehicle)} alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/42 via-black/18 to-black/28" />
       <div className="absolute right-4 top-4 rounded-full bg-white/90 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-[#111111]">
         {vehicle.year}
       </div>

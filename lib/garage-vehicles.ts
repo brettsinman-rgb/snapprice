@@ -24,6 +24,10 @@ export function manufacturerLogo(make?: string | null) {
   return MANUFACTURER_LOGOS[make.trim().toLowerCase()] ?? null;
 }
 
+export function getVehicleImage(vehicle: { imageUrl?: string | null }) {
+  return vehicle.imageUrl || '/vehicles/placeholder.jpg';
+}
+
 export function vehicleMatchText(vehicle: { make: string; model: string }) {
   return `${vehicle.make} ${vehicle.model}`.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
