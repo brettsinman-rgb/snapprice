@@ -34,21 +34,51 @@ for (const query of vagOemQueries) {
   assert.ok(plan.variants.includes('5Q0 919 051 BK'));
   assert.ok(plan.variants.includes('5Q0919051BK'));
   assert.ok(plan.variants.includes('5Q0-919-051-BK'));
+  assert.ok(plan.variants.includes('5Q0.919.051.BK'));
   assert.ok(plan.variants.includes('VW 5Q0 919 051 BK'));
-  assert.ok(plan.variants.includes('Audi 5Q0 919 051 BK'));
+  assert.ok(plan.variants.includes('AUDI 5Q0 919 051 BK') || plan.variants.includes('Audi 5Q0 919 051 BK'));
 }
 
 const vagPlan = buildSearchQueryPlan('VAG 5Q0 919 051 BK');
 assert.equal(vagPlan.kind, 'mixed');
-assert.deepEqual(vagPlan.variants.slice(0, 7), [
+assert.deepEqual(vagPlan.variants.slice(0, 8), [
   'VAG 5Q0 919 051 BK',
   '5Q0 919 051 BK',
   '5Q0919051BK',
   '5Q0-919-051-BK',
+  '5Q0.919.051.BK',
   'VW 5Q0 919 051 BK',
-  'Audi 5Q0 919 051 BK',
-  'Volkswagen 5Q0 919 051 BK'
+  'AUDI 5Q0 919 051 BK',
+  'SKODA 5Q0 919 051 BK'
 ]);
+
+const equivalentOemQueries = [
+  '5Q0-611-841-A',
+  '5Q0611841A',
+  '5Q0 611 841 A',
+  '5Q0.611.841.A',
+  'VW 5Q0-611-841-A',
+  'VAG 5Q0611841A'
+];
+const requiredOemVariants = [
+  '5Q0611841A',
+  '5Q0 611 841 A',
+  '5Q0-611-841-A',
+  '5Q0.611.841.A',
+  'VW 5Q0 611 841 A',
+  'VAG 5Q0 611 841 A',
+  'AUDI 5Q0 611 841 A',
+  'SKODA 5Q0 611 841 A',
+  'SEAT 5Q0 611 841 A'
+];
+
+for (const query of equivalentOemQueries) {
+  const plan = buildSearchQueryPlan(query);
+  assert.deepEqual(plan.partNumbers, ['5Q0611841A']);
+  for (const variant of requiredOemVariants) {
+    assert.ok(plan.variants.includes(variant), `${query} should include ${variant}`);
+  }
+}
 
 const descriptiveCandidates: ProviderCandidate[] = [
   {
@@ -193,5 +223,49 @@ const vagResults = normalizeCandidates(vagCandidates, 'VAG 5Q0 919 051 BK');
 assert.equal(vagResults.length, 3);
 assert.ok(vagResults.every((result) => /5Q0|5Q0919051BK/i.test(result.title)));
 assert.ok(vagResults.every((result) => !/party|pom/i.test(result.title)));
+
+const compactOemQuery = '5Q0611841A';
+const compactOemCandidates: ProviderCandidate[] = [
+  {
+    title: 'Genuine Volkswagen Brake Hydraulic Line Bracket 5Q0-611-841-A',
+    brand: 'Volkswagen',
+    image: 'https://i.ebayimg.com/images/vw-brake-line-bracket-hyphen.jpg',
+    store: 'eBay',
+    price: 42,
+    currency: 'USD',
+    productUrl: 'https://www.ebay.com/itm/vw-bracket-hyphen',
+    matchScore: 0.72,
+    raw: { categoryPath: 'eBay Motors > Parts & Accessories > Vehicle Parts' }
+  },
+  {
+    title: 'Genuine VW Brake Line Bracket 5Q0611841A',
+    brand: 'VW',
+    image: 'https://i.ebayimg.com/images/vw-brake-line-bracket-compact.jpg',
+    store: 'eBay',
+    price: 42,
+    currency: 'USD',
+    productUrl: 'https://www.ebay.com/itm/vw-bracket-compact',
+    matchScore: 0.7,
+    raw: { categoryPath: 'eBay Motors > Parts & Accessories > Vehicle Parts' }
+  },
+  {
+    title: 'Universal Garage Wall Bracket 5Q0-611-841-A Party Decoration',
+    image: 'https://example.com/wall-bracket.jpg',
+    store: 'Decor Shop',
+    price: 9,
+    currency: 'USD',
+    productUrl: 'https://example.com/wall-bracket',
+    matchScore: 0.99,
+    raw: { categoryPath: 'Party Supplies > Decorations' }
+  }
+];
+
+const hyphenTitleScore = scoreAutomotiveRelevance(compactOemCandidates[0], compactOemQuery);
+assert.ok(hyphenTitleScore.exactOemMatch);
+assert.ok(hyphenTitleScore.score > 0.8);
+
+const compactOemResults = normalizeCandidates(compactOemCandidates, compactOemQuery);
+assert.equal(compactOemResults.length, 1);
+assert.match(compactOemResults[0].title, /5Q0-611-841-A|5Q0611841A/i);
 
 console.log('Search query classifier, expansion, and normalization tests passed.');

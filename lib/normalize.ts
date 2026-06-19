@@ -24,6 +24,13 @@ function priceClose(a?: number, b?: number) {
   return Math.abs(a - b) <= Math.max(3, a * 0.05);
 }
 
+function sharedPartNumber(a: NormalizedResult, b: NormalizedResult) {
+  const aParts = extractPartNumbers(a.title);
+  if (aParts.length === 0) return false;
+  const bParts = new Set(extractPartNumbers(b.title));
+  return aParts.some((partNumber) => bParts.has(partNumber));
+}
+
 const SAFE_DOMAINS = [
   'rockauto.', 'autozone.', 'carparts.', 'partsgeek.',
   'advanceautoparts.', 'oreillyauto.', 'napaonline.', 'summitracing.', 
@@ -161,6 +168,27 @@ function extractPartNumberSegments(value: string) {
   return Array.from(new Set(segments));
 }
 
+function hasOrderedPartNumberTokenMatch(query: string, title: string) {
+  let querySegments = query
+    .toUpperCase()
+    .split(/[^A-Z0-9]+/)
+    .filter(Boolean);
+  if (querySegments.length === 1 && /^[A-Z0-9]{9}[A-Z0-9]{0,3}$/.test(querySegments[0])) {
+    const compact = querySegments[0];
+    querySegments = [compact.slice(0, 3), compact.slice(3, 6), compact.slice(6, 9), compact.slice(9)].filter(Boolean);
+  }
+  if (querySegments.length < 3) return false;
+
+  const titleTokens = normalizeTitle(title).split(' ').filter(Boolean);
+  let cursor = 0;
+  for (const segment of querySegments) {
+    const index = titleTokens.findIndex((token, tokenIndex) => tokenIndex >= cursor && token === segment.toLowerCase());
+    if (index < 0) return false;
+    cursor = index + 1;
+  }
+  return true;
+}
+
 function hasPartialPartNumberMatch(query: string, compactTitle: string) {
   const segments = extractPartNumberSegments(query);
   const strongSegmentMatches = segments.filter((segment) => compactTitle.includes(segment.toLowerCase())).length;
@@ -261,6 +289,10 @@ export function scoreAutomotiveRelevance(candidate: ProviderCandidate, query?: s
       exactOemMatch = true;
       break;
     }
+    if (hasOrderedPartNumberTokenMatch(partNumber, titleText)) {
+      exactOemMatch = true;
+      break;
+    }
     if (hasPartialPartNumberMatch(partNumber, compactTitle)) {
       partialOemMatch = true;
     }
@@ -272,7 +304,7 @@ export function scoreAutomotiveRelevance(candidate: ProviderCandidate, query?: s
   ]));
   const isSafeDomain = SAFE_DOMAINS.some((domain) => normalizedUrl.includes(domain));
   const isGeneralMarket = GENERAL_MARKETPLACES.some((domain) => normalizedUrl.includes(domain));
-  const looksLikePartNumber = /\b(?=[A-Z0-9 -]*\d)(?:[A-Z0-9]{1,}[ -]){2,}[A-Z0-9]{2,}\b|\b(?=[A-Z0-9]*\d)[A-Z0-9]{7,}\b/i.test(titleText);
+  const looksLikePartNumber = /\b(?=[A-Z0-9 .-]*\d)(?:[A-Z0-9]{1,}[ .-]){2,}[A-Z0-9]{1,}\b|\b(?=[A-Z0-9]*\d)(?=[A-Z0-9]*[A-Z])[A-Z0-9]{6,}\b/i.test(titleText);
 
   const oemMatchScore = exactOemMatch ? 0.52 : partialOemMatch ? 0.32 : 0;
   const automotiveScore = Math.min(0.34, matchedPositiveTerms.length * 0.055 + (looksLikePartNumber ? 0.08 : 0));
@@ -378,7 +410,7 @@ export function dedupeResults<T extends NormalizedResult>(results: T[]): T[] {
       const sameHost = new URL(existing.productUrl).hostname === hostname;
       const similarTitle = jaccardSimilarity(existing.title, item.title) >= 0.6;
       const closePrice = priceClose(existing.price, item.price);
-      return sameHost && similarTitle && closePrice;
+      return sameHost && closePrice && (similarTitle || sharedPartNumber(existing, item));
     });
 
     if (!match) {
