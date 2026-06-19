@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import clsx from 'clsx';
 
 type Props = {
@@ -32,6 +33,8 @@ export default function SortFilterBar({
 }: Props) {
   const [regionsOpen, setRegionsOpen] = useState(false);
   const regionMenuRef = useRef<HTMLDivElement>(null);
+  const regionButtonRef = useRef<HTMLButtonElement>(null);
+  const [regionMenuTop, setRegionMenuTop] = useState(0);
   const allRegionIds = regionOptions.map((region) => region.id);
   const selectedCount = selectedRegions.length;
   const allRegionsSelected = regionOptions.length > 0 && selectedCount === regionOptions.length;
@@ -62,6 +65,23 @@ export default function SortFilterBar({
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
+
+  useEffect(() => {
+    if (!regionsOpen) return;
+
+    const updateMenuPosition = () => {
+      const rect = regionButtonRef.current?.getBoundingClientRect();
+      if (rect) setRegionMenuTop(rect.bottom + 8);
+    };
+
+    updateMenuPosition();
+    window.addEventListener('resize', updateMenuPosition);
+    window.addEventListener('scroll', updateMenuPosition, true);
+    return () => {
+      window.removeEventListener('resize', updateMenuPosition);
+      window.removeEventListener('scroll', updateMenuPosition, true);
+    };
+  }, [regionsOpen]);
 
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-2 rounded-2xl border border-[#0FF7D0] bg-white p-3 shadow-soft sm:gap-3 sm:p-4">
@@ -121,6 +141,7 @@ export default function SortFilterBar({
         {regionOptions.length > 0 && (
           <div ref={regionMenuRef} className="relative">
             <button
+              ref={regionButtonRef}
               type="button"
               aria-controls="region-filter-menu"
               aria-expanded={regionsOpen}
@@ -133,7 +154,8 @@ export default function SortFilterBar({
             {regionsOpen && (
               <div
                 id="region-filter-menu"
-                className="absolute right-0 z-30 mt-2 w-72 max-w-[calc(100vw-2rem)] rounded-2xl border border-[#0FF7D0]/35 bg-white p-3 text-xs text-[#020617] shadow-soft"
+                style={{ '--region-menu-top': `${regionMenuTop}px` } as CSSProperties}
+                className="fixed left-4 right-4 top-[var(--region-menu-top)] z-50 max-h-[calc(100vh-var(--region-menu-top)-16px)] w-auto overflow-y-auto rounded-2xl border border-[#0FF7D0]/35 bg-white p-3 text-xs text-[#020617] shadow-soft sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:max-h-none sm:w-72 sm:max-w-[calc(100vw-2rem)] sm:overflow-visible"
               >
                 <div className="flex items-center justify-between border-b border-[#0FF7D0]/15 pb-2">
                   <button
