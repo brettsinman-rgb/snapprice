@@ -78,41 +78,41 @@ export default function ProductCard({
         isBest ? 'best-price-glow border-[#0FF7D0]' : 'border-[#0FF7D0]'
       ].join(' ')}
     >
-      <div className="relative h-36 w-full bg-white min-[480px]:h-28 sm:h-40 lg:h-48">
+      <div className="relative h-24 w-full bg-white max-[339px]:h-36 sm:h-40 lg:h-48">
         <Image
           src={result.image}
           alt={result.title}
           fill
           className="object-cover"
-          sizes="(max-width: 479px) 100vw, (max-width: 767px) 50vw, (max-width: 1279px) 33vw, 25vw"
+          sizes="(max-width: 339px) 100vw, (max-width: 767px) 50vw, (max-width: 1279px) 33vw, 25vw"
         />
       </div>
-      <div className="flex min-w-0 flex-1 flex-col gap-3 p-3 sm:gap-4 sm:p-5">
-        <div className="min-h-[68px] min-w-0 sm:min-h-[72px]">
-          <p className="truncate text-[9px] font-semibold uppercase tracking-[0.16em] text-[#262626]/70 sm:text-[11px] sm:tracking-[0.2em]">
+      <div className="flex min-w-0 flex-1 flex-col gap-2.5 p-2.5 max-[339px]:p-3 sm:gap-4 sm:p-5">
+        <div className="min-h-[62px] min-w-0 sm:min-h-[72px]">
+          <p className="truncate text-[8px] font-semibold uppercase tracking-[0.12em] text-[#262626]/70 sm:text-[11px] sm:tracking-[0.2em]">
             {result.store}
           </p>
-          <h3 className="mt-1.5 text-[13px] font-semibold leading-snug text-[#262626] line-clamp-2 sm:mt-2 sm:text-sm">
+          <h3 className="mt-1 text-[12px] font-semibold leading-snug text-[#262626] line-clamp-2 sm:mt-2 sm:text-sm">
             {result.title}
           </h3>
           <div className="mt-1">{renderStars(result.rating)}</div>
         </div>
-        <div className="rounded-2xl border border-[#0FF7D0] bg-[#ebebe3] p-2.5 text-[11px] text-[#262626]/70 sm:p-3 sm:text-xs">
-          <div className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-2">
-            <span className="text-[8px] uppercase tracking-[0.14em] text-[#262626]/70 sm:text-[10px] sm:tracking-[0.2em]">Price</span>
+        <div className="rounded-xl border border-[#0FF7D0] bg-[#ebebe3] p-2 text-[10px] text-[#262626]/70 sm:rounded-2xl sm:p-3 sm:text-xs">
+          <div className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-1.5 sm:gap-2">
+            <span className="text-[8px] uppercase tracking-[0.08em] text-[#262626]/70 sm:text-[10px] sm:tracking-[0.2em]">Price</span>
             <span className="min-w-0 text-right font-semibold leading-snug text-[#262626]">{formatPrice(result.price, result.currency)}</span>
           </div>
-          <div className="mt-1.5 grid grid-cols-[auto_minmax(0,1fr)] items-start gap-2 sm:mt-2">
-            <span className="text-[8px] uppercase tracking-[0.14em] text-[#262626]/70 sm:text-[10px] sm:tracking-[0.2em]">Shipping</span>
+          <div className="mt-1 grid grid-cols-[auto_minmax(0,1fr)] items-start gap-1.5 sm:mt-2 sm:gap-2">
+            <span className="text-[8px] uppercase tracking-[0.08em] text-[#262626]/70 sm:text-[10px] sm:tracking-[0.2em]">Shipping</span>
             <span className="min-w-0 text-right leading-snug">{shippingText}</span>
           </div>
-          <div className="mt-1.5 grid grid-cols-[auto_minmax(0,1fr)] items-start gap-2 sm:mt-2">
-            <span className="text-[8px] uppercase tracking-[0.14em] text-[#262626]/70 sm:text-[10px] sm:tracking-[0.2em]">Condition</span>
+          <div className="mt-1 grid grid-cols-[auto_minmax(0,1fr)] items-start gap-1.5 sm:mt-2 sm:gap-2">
+            <span className="text-[8px] uppercase tracking-[0.08em] text-[#262626]/70 sm:text-[10px] sm:tracking-[0.2em]">Condition</span>
             <span className="min-w-0 text-right capitalize leading-snug">{condition}</span>
           </div>
           {result.availability ? (
-            <div className="mt-1.5 grid grid-cols-[auto_minmax(0,1fr)] items-start gap-2 sm:mt-2">
-              <span className="text-[8px] uppercase tracking-[0.14em] text-[#262626]/70 sm:text-[10px] sm:tracking-[0.2em]">Availability</span>
+            <div className="mt-1 grid grid-cols-[auto_minmax(0,1fr)] items-start gap-1.5 sm:mt-2 sm:gap-2">
+              <span className="text-[8px] uppercase tracking-[0.08em] text-[#262626]/70 sm:text-[10px] sm:tracking-[0.2em]">Availability</span>
               <span className="min-w-0 text-right capitalize leading-snug">{result.availability}</span>
             </div>
           ) : null}
@@ -128,7 +128,7 @@ export default function ProductCard({
             }
             trackClick(sessionId, result.id);
           }}
-          className="mt-auto inline-flex min-h-11 items-center justify-center rounded-full bg-[#0FF7D0]/90 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#07181b] transition group-hover:bg-[#0FF7D0] sm:px-4 sm:text-[11px] sm:tracking-[0.2em]"
+          className="mt-auto inline-flex min-h-11 items-center justify-center rounded-full bg-[#0FF7D0]/90 px-2.5 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#07181b] transition group-hover:bg-[#0FF7D0] sm:px-4 sm:text-[11px] sm:tracking-[0.2em]"
         >
           Buy now
         </a>

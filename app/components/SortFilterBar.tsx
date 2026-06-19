@@ -30,8 +30,8 @@ export default function SortFilterBar({
   conditionOptions
 }: Props) {
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-[#0FF7D0] bg-white p-5 shadow-soft md:flex-row md:items-center md:justify-between">
-      <div className="flex flex-wrap gap-2">
+    <div className="flex min-w-0 flex-col gap-4 rounded-2xl border border-[#0FF7D0] bg-white p-4 shadow-soft sm:p-5 md:flex-row md:items-center md:justify-between">
+      <div className="flex min-w-0 flex-wrap gap-2">
         {[
           { id: 'cheapest', label: 'Cheapest' },
           { id: 'best', label: 'Best match' }
@@ -40,7 +40,7 @@ export default function SortFilterBar({
             key={option.id}
             onClick={() => setSortMode(option.id as Props['sortMode'])}
             className={clsx(
-              'rounded-full border px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.2em]',
+              'max-w-full rounded-full border px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] sm:px-5 sm:tracking-[0.2em]',
               sortMode === option.id
                 ? 'border-[#0FF7D0] bg-[#0FF7D0] text-[#020617]'
                 : 'border-[#0FF7D0]/30 text-[#020617] hover:border-[#0FF7D0]/60'
@@ -56,7 +56,7 @@ export default function SortFilterBar({
           id="condition-pill-select"
           value={condition}
           onChange={(event) => setCondition(event.target.value)}
-          className="select-cta select-cta-pill rounded-full border border-[#0FF7D0]/30 bg-white px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#020617] hover:border-[#0FF7D0]/60"
+          className="select-cta select-cta-pill max-w-full rounded-full border border-[#0FF7D0]/30 bg-white px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#020617] hover:border-[#0FF7D0]/60 sm:px-5 sm:tracking-[0.2em]"
         >
           <option value="all">Condition: All</option>
           {conditionOptions.map((option) => (
@@ -72,7 +72,7 @@ export default function SortFilterBar({
           id="currency-pill-select"
           value={currency}
           onChange={(event) => setCurrency(event.target.value)}
-          className="select-cta select-cta-pill rounded-full border border-[#0FF7D0]/30 bg-white px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#020617] hover:border-[#0FF7D0]/60"
+          className="select-cta select-cta-pill max-w-full rounded-full border border-[#0FF7D0]/30 bg-white px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#020617] hover:border-[#0FF7D0]/60 sm:px-5 sm:tracking-[0.2em]"
         >
           <option value="all">Currency: All</option>
           {currencyOptions.map((option) => (
@@ -83,7 +83,7 @@ export default function SortFilterBar({
         </select>
       </div>
       {regionOptions.length > 0 && (
-        <div className="flex flex-wrap gap-3 text-xs text-[#020617]">
+        <div className="flex min-w-0 flex-wrap gap-2 text-xs text-[#020617] sm:gap-3">
           <span className="w-full text-[11px] font-semibold uppercase tracking-[0.2em]">Regions</span>
           {regionOptions.map((region) => {
             const checked = selectedRegions.includes(region.id);

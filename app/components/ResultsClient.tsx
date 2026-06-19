@@ -158,7 +158,7 @@ export default function ResultsClient({ sessionId }: { sessionId: string }) {
 
   if (loading) {
     return (
-      <main className="min-h-screen px-6 py-10">
+      <main className="min-h-screen px-4 py-10 sm:px-6">
         <LoadingSkeleton />
       </main>
     );
@@ -166,7 +166,7 @@ export default function ResultsClient({ sessionId }: { sessionId: string }) {
 
   if (error) {
     return (
-      <main className="min-h-screen px-6 py-10">
+      <main className="min-h-screen px-4 py-10 sm:px-6">
         <div className="mx-auto max-w-3xl rounded-2xl bg-white p-6 shadow-soft">
           <p className="text-sm text-red-600">{error}</p>
         </div>
@@ -187,9 +187,9 @@ export default function ResultsClient({ sessionId }: { sessionId: string }) {
     .sort((a, b) => a.price - b.price)[0];
 
   return (
-    <main className="min-h-screen px-6 pb-16">
-      <div className="sticky top-0 z-20 border-b border-[#0FF7D0]/20 bg-[#ebebe3] backdrop-blur">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-4 md:flex-row md:items-center md:justify-between">
+    <main className="min-h-screen px-4 pb-16 sm:px-6">
+      <div className="sticky top-0 z-20 -mx-4 border-b border-[#0FF7D0]/20 bg-[#ebebe3] backdrop-blur sm:-mx-6">
+        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-4 sm:px-6 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-4">
             <Link
               href="/"
@@ -230,7 +230,7 @@ export default function ResultsClient({ sessionId }: { sessionId: string }) {
         </div>
       </div>
 
-      <div className="mx-auto mt-8 max-w-6xl">
+      <div className="mx-auto mt-8 w-full max-w-6xl min-w-0">
         <AdSlot
           size="970x250"
           mobileSize="320x100"

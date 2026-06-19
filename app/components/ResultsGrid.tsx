@@ -14,8 +14,8 @@ export default function ResultsGrid({ results, sessionId }: { results: ResultIte
       if (width >= 1280) return 4; // xl:grid-cols-4
       if (width >= 1024) return 3; // lg:grid-cols-3
       if (width >= 768) return 3; // md:grid-cols-3
-      if (width >= 480) return 2; // min-[480px]:grid-cols-2
-      return 1; // grid-cols-1
+      if (width < 340) return 1; // max-[339px]:grid-cols-1
+      return 2; // grid-cols-2
     };
 
     const updateColumns = () => setColumns(resolveColumns());
@@ -41,7 +41,7 @@ export default function ResultsGrid({ results, sessionId }: { results: ResultIte
     const hasMoreResultsAfter = index < results.length - 1;
     if (isEveryFourthRow && hasMoreResultsAfter) {
       items.push(
-        <div key={`inline-banner-${index}`} className="min-[480px]:col-span-2 md:col-span-3 xl:col-span-4">
+        <div key={`inline-banner-${index}`} className="col-span-2 max-[339px]:col-span-1 md:col-span-3 xl:col-span-4">
           <AdSlot
             size="970x250"
             mobileSize="300x250"
@@ -54,7 +54,7 @@ export default function ResultsGrid({ results, sessionId }: { results: ResultIte
   });
 
   return (
-    <div className="mt-8 grid grid-cols-1 gap-4 min-[480px]:grid-cols-2 md:grid-cols-3 lg:gap-6 xl:grid-cols-4">
+    <div className="mt-6 grid min-w-0 grid-cols-2 gap-3 max-[339px]:grid-cols-1 md:mt-8 md:grid-cols-3 md:gap-4 lg:gap-6 xl:grid-cols-4">
       {items}
     </div>
   );
