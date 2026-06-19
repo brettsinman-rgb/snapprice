@@ -14,24 +14,6 @@ body {
   font-family: 'Poppins', 'Helvetica Neue', Helvetica, sans-serif;
 }
 
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background-image: url('/tech-overlay.svg');
-  background-repeat: no-repeat;
-  background-position: center 10%;
-  background-size: 1400px auto;
-  opacity: 0.12;
-  pointer-events: none;
-  z-index: 0;
-}
-
-body > * {
-  position: relative;
-  z-index: 1;
-}
-
 .select-cta {
   appearance: none;
   padding-right: 20px;
