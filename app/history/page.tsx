@@ -79,7 +79,7 @@ export default async function HistoryPage() {
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover:-translate-x-1"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
               Back to Home
             </Link>
-            <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[#0CC6A6]">PartsSeekr Account</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[#0CC6A6]">Parts Seekr Account</p>
             <h1 className="mt-1 text-4xl font-bold tracking-tight text-[#111111] sm:text-5xl">My Searches</h1>
             <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-[#262626]/58 sm:text-base">
               Manage saved searches, monitor price alerts, and track part history.
