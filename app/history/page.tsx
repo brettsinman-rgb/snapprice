@@ -144,46 +144,43 @@ export default async function HistoryPage() {
             </Link>
           </div>
         ) : (
-          <div className="grid gap-3">
+          <div className="grid min-w-0 grid-cols-2 gap-3 max-[339px]:grid-cols-1 md:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
             {sessions.map((session, idx) => (
               <Link 
                 key={session.id} 
                 href={`/results/${session.id}`}
-                className="fade-up group relative grid gap-3 rounded-[24px] bg-white/86 p-3 shadow-sm ring-1 ring-black/5 transition-all hover:-translate-y-0.5 hover:shadow-[0_22px_60px_-42px_rgba(17,17,17,0.65)] hover:ring-[#0FF7D0]/45 sm:grid-cols-[88px_minmax(0,1fr)_auto] sm:items-center sm:gap-4"
+                className="fade-up group flex min-w-0 flex-col overflow-hidden rounded-[24px] bg-white/86 shadow-sm ring-1 ring-black/5 transition-all hover:-translate-y-0.5 hover:shadow-[0_22px_60px_-42px_rgba(17,17,17,0.65)] hover:ring-[#0FF7D0]/45"
                 style={{ animationDelay: `${idx * 50}ms` }}
               >
-                <div className="relative h-24 w-full overflow-hidden rounded-[18px] bg-[#f8f9f6] shadow-inner ring-1 ring-black/5 transition-transform duration-500 group-hover:scale-[1.02] sm:h-[88px] sm:w-[88px]">
+                <div className="relative h-24 w-full overflow-hidden bg-[#f8f9f6] shadow-inner ring-1 ring-black/5 max-[339px]:h-36 sm:h-32 lg:h-36">
                   <Image 
                     src={normalizeImageUrl(session.results[0]?.image || session.imageUrl)} 
                     alt={session.query || 'Search image'} 
                     fill 
+                    sizes="(max-width: 339px) 100vw, (max-width: 767px) 50vw, (max-width: 1023px) 33vw, (max-width: 1279px) 50vw, 33vw"
                     className="object-cover"
                     unoptimized
                   />
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
                 </div>
                 
-                <div className="min-w-0">
-                  <div className="mb-2 flex flex-wrap items-center gap-2">
+                <div className="flex min-w-0 flex-1 flex-col gap-2 p-2.5 max-[339px]:p-3 sm:p-3">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="inline-flex items-center rounded-full bg-[#0FF7D0]/12 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[#0CC6A6]">
                       {session.query ? 'Text Search' : 'Visual Search'}
                     </span>
                   </div>
-                  <h3 className="truncate text-lg font-bold text-[#111111] transition-colors group-hover:text-[#0CC6A6]">
+                  <h3 className="min-h-[40px] text-[12px] font-bold leading-snug text-[#111111] transition-colors line-clamp-2 group-hover:text-[#0CC6A6] sm:text-sm">
                     {session.query || 'Parts Match Analysis'}
                   </h3>
-                  <div className="mt-2 grid gap-1 text-xs font-semibold text-[#262626]/55 sm:grid-cols-3">
-                    <span>{session.query ? 'Text Search' : 'Visual Search'}</span>
+                  <div className="grid gap-1 text-[10px] font-semibold leading-snug text-[#262626]/55 sm:text-xs">
                     <span>{new Date(session.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                     <span>{session.results.length} {session.results.length === 1 ? 'Match' : 'Matches'} Found</span>
                     {session.country && (
                       <span className="uppercase tracking-wider text-[#262626]/45">{session.country}</span>
                     )}
                   </div>
-                </div>
-                
-                <div className="flex sm:justify-end">
-                  <span className="inline-flex h-10 items-center justify-center rounded-full bg-[#111111] px-5 text-[11px] font-bold uppercase tracking-[0.14em] text-white transition group-hover:bg-[#0FF7D0] group-hover:text-[#07181b]">
+                  <span className="mt-auto inline-flex min-h-11 items-center justify-center rounded-full bg-[#111111] px-2.5 py-2 text-center text-[10px] font-bold uppercase tracking-[0.12em] text-white transition group-hover:bg-[#0FF7D0] group-hover:text-[#07181b] sm:px-4 sm:text-[11px] sm:tracking-[0.14em]">
                     View Results
                   </span>
                 </div>
