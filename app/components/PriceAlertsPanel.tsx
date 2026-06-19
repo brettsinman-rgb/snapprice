@@ -62,16 +62,123 @@ function normalizeImageUrl(url?: string | null) {
 }
 
 function statusClass(status: string) {
-  if (status === 'triggered') return 'bg-[#111111] text-white';
-  if (status === 'paused') return 'bg-[#262626]/8 text-[#262626]/60';
-  return 'bg-[#0FF7D0]/18 text-[#0CC6A6]';
+  if (status === 'triggered') return 'bg-emerald-400/16 text-emerald-200 ring-1 ring-emerald-300/25';
+  if (status === 'paused') return 'bg-amber-300/14 text-amber-200 ring-1 ring-amber-300/25';
+  return 'bg-[#0FF7D0]/16 text-[#0FF7D0] ring-1 ring-[#0FF7D0]/25';
+}
+
+function statusLabel(status: string) {
+  return (status || 'active').toUpperCase();
 }
 
 function alertThumbnail(alert: PriceAlertItem) {
-  return normalizeImageUrl(
-    alert.savedResultImage ||
-      alert.lastResultImage ||
-      alert.triggeredProductImage
+  return normalizeImageUrl(alert.savedResultImage || alert.lastResultImage || alert.triggeredProductImage);
+}
+
+function progressDetails(alert: PriceAlertItem) {
+  const current = alert.currentLowestPrice;
+  const target = alert.targetPrice;
+  if (current == null || target == null || current <= 0 || target <= 0) return null;
+
+  const progress = current <= target ? 100 : Math.max(8, Math.min(94, (target / current) * 100));
+  const away = current <= target ? 0 : Math.round(((current - target) / current) * 100);
+  return {
+    progress,
+    label: current <= target ? 'At or below target' : `${away}% away from target`
+  };
+}
+
+function AlertCard({
+  alert,
+  onStatusChange,
+  onRemove
+}: {
+  alert: PriceAlertItem;
+  onStatusChange: (id: string, status: 'active' | 'paused') => void;
+  onRemove: (id: string) => void;
+}) {
+  const progress = progressDetails(alert);
+  const isActive = alert.status === 'active';
+
+  return (
+    <article className="group rounded-[26px] border border-white/8 bg-white/[0.055] p-4 shadow-[0_22px_70px_-54px_rgba(0,0,0,0.95)] transition hover:-translate-y-0.5 hover:border-[#0FF7D0]/28 hover:bg-white/[0.075] sm:p-5">
+      <div className="grid gap-4 lg:grid-cols-[104px_minmax(0,1fr)]">
+        <div className="relative h-28 w-full overflow-hidden rounded-[22px] bg-[#111111] ring-1 ring-white/10 sm:h-32 lg:h-[104px]">
+          <Image
+            src={alertThumbnail(alert)}
+            alt={alert.searchQuery}
+            fill
+            sizes="(max-width: 1023px) 100vw, 104px"
+            className="object-cover"
+            unoptimized
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/35 to-transparent" />
+        </div>
+
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <h3 className="min-w-0 flex-1 break-words text-base font-bold leading-6 text-white sm:text-lg">
+              {alert.searchQuery || 'Price Alert'}
+            </h3>
+            <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] ${statusClass(alert.status)}`}>
+              {statusLabel(alert.status)}
+            </span>
+          </div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <div>
+              <p className="text-2xl font-bold tracking-tight text-white">{formatPrice(alert.currentLowestPrice, alert.currency)}</p>
+              <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.16em] text-white/42">Current Lowest</p>
+            </div>
+            <div>
+              <p className="text-xl font-bold tracking-tight text-[#0FF7D0]">{formatPrice(alert.targetPrice, alert.currency)}</p>
+              <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.16em] text-white/42">Target</p>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-white">{formatDate(alert.lastCheckedAt)}</p>
+              <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.16em] text-white/42">Last Checked</p>
+            </div>
+          </div>
+
+          <div className="mt-4 rounded-[18px] bg-black/22 p-3 ring-1 ring-white/8">
+            {progress ? (
+              <>
+                <div className="h-2 overflow-hidden rounded-full bg-white/10">
+                  <div className="h-full rounded-full bg-[#0FF7D0]" style={{ width: `${progress.progress}%` }} />
+                </div>
+                <p className="mt-2 text-xs font-semibold text-white/58">{progress.label}</p>
+              </>
+            ) : (
+              <p className="text-xs font-semibold text-white/52">Waiting for first price check</p>
+            )}
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => onStatusChange(alert.id, isActive ? 'paused' : 'active')}
+              className="h-9 rounded-full border border-white/12 px-4 text-[11px] font-bold uppercase tracking-[0.14em] text-white/78 transition hover:border-[#0FF7D0]/45 hover:text-[#0FF7D0]"
+            >
+              {isActive ? 'Pause' : 'Resume'}
+            </button>
+            <button
+              type="button"
+              disabled
+              className="h-9 cursor-not-allowed rounded-full border border-white/8 px-4 text-[11px] font-bold uppercase tracking-[0.14em] text-white/30"
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              onClick={() => onRemove(alert.id)}
+              className="h-9 rounded-full border border-white/12 px-4 text-[11px] font-bold uppercase tracking-[0.14em] text-white/62 transition hover:border-red-400/45 hover:text-red-200"
+            >
+              Remove
+            </button>
+          </div>
+        </div>
+      </div>
+    </article>
   );
 }
 
@@ -83,6 +190,8 @@ export default function PriceAlertsPanel({
   loadError?: string | null;
 }) {
   const [items, setItems] = useState(alerts ?? []);
+  const activeAlerts = items.filter((item) => item.status !== 'triggered');
+  const triggeredAlerts = items.filter((item) => item.status === 'triggered');
 
   const updateStatus = async (id: string, status: 'active' | 'paused') => {
     const response = await fetch(`/api/price-alerts/${id}`, {
@@ -103,72 +212,61 @@ export default function PriceAlertsPanel({
   };
 
   return (
-    <section className="mb-12 overflow-hidden rounded-[28px] border border-[#0FF7D0]/25 bg-[#0FF7D0]/8 p-4 shadow-[0_22px_70px_-55px_rgba(17,17,17,0.55)] sm:p-5">
-      <div className="flex flex-col gap-2 border-b border-[#0CC6A6]/10 pb-4 sm:flex-row sm:items-end sm:justify-between">
+    <section className="mb-8 overflow-visible rounded-[32px] border border-[#0FF7D0]/24 bg-[#202020] p-4 text-white shadow-[0_28px_90px_-58px_rgba(0,0,0,0.95)] sm:p-6">
+      <div className="flex flex-col gap-4 border-b border-white/8 pb-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#0CC6A6]">Price Alerts</p>
-          <h2 className="mt-1 text-2xl font-bold tracking-tight text-[#111111]">Price Alerts</h2>
+          <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#0FF7D0]">Price Alerts</p>
+          <h2 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">Monitor parts automatically and get notified when prices drop.</h2>
         </div>
-        <p className="text-sm font-medium text-[#262626]/55">{items.length} saved price alerts</p>
+        <span className="inline-flex w-fit rounded-full border border-[#0FF7D0]/24 bg-[#0FF7D0]/10 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[#0FF7D0]">
+          {activeAlerts.length} Active {activeAlerts.length === 1 ? 'Alert' : 'Alerts'}
+        </span>
       </div>
 
       {loadError ? (
-        <div className="mt-4 rounded-[22px] bg-white/70 p-4 text-sm font-medium text-[#262626]/55 ring-1 ring-white">
+        <div className="mt-5 rounded-[24px] border border-red-300/20 bg-red-400/8 p-4 text-sm font-medium text-red-100">
           {loadError}
         </div>
       ) : items.length === 0 ? (
-        <div className="mt-4 rounded-[22px] bg-white/70 p-4 text-sm font-medium text-[#262626]/55 ring-1 ring-white">
-          Create a Price Alert from a search results page to get notified when a matching part reaches your target price.
+        <div className="mt-5 rounded-[24px] border border-white/8 bg-white/[0.055] p-5">
+          <h3 className="text-lg font-bold text-white">No active price alerts yet.</h3>
+          <p className="mt-2 text-sm font-medium leading-6 text-white/55">
+            Create a Price Alert from any search result.
+          </p>
         </div>
       ) : (
-        <div className="mt-4 grid gap-3">
-          {items.map((alert) => (
-            <article key={alert.id} className="rounded-[22px] bg-white/82 p-3 shadow-sm ring-1 ring-white/80">
-              <div className="grid gap-3 sm:grid-cols-[76px_minmax(0,1fr)_auto] sm:items-center">
-                <div className="relative h-[76px] w-[76px] overflow-hidden rounded-[18px] bg-[#f8f9f6] ring-1 ring-black/5">
-                  <Image
-                    src={alertThumbnail(alert)}
-                    alt={alert.searchQuery}
-                    fill
-                    sizes="76px"
-                    className="object-cover"
-                    unoptimized
-                  />
-                </div>
-
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] ${statusClass(alert.status)}`}>
-                      {alert.status || 'active'}
-                    </span>
-                    <span className="text-xs font-medium text-[#262626]/45">Checked: {formatDate(alert.lastCheckedAt)}</span>
-                  </div>
-                  <h3 className="mt-2 truncate text-base font-bold text-[#111111]">{alert.searchQuery || 'Price Alert'}</h3>
-                  <div className="mt-2 grid gap-1 text-xs font-semibold text-[#262626]/58 sm:grid-cols-2">
-                    <span>Current lowest: {formatPrice(alert.currentLowestPrice, alert.currency)}</span>
-                    <span>Target: {formatPrice(alert.targetPrice, alert.currency)}</span>
-                  </div>
-                </div>
-
-                <div className="flex gap-2 sm:flex-col sm:items-stretch">
-                  <button
-                    type="button"
-                    onClick={() => updateStatus(alert.id, alert.status === 'active' ? 'paused' : 'active')}
-                    className="h-9 flex-1 rounded-full border border-[#262626]/10 bg-white px-4 text-[11px] font-bold uppercase tracking-[0.14em] text-[#262626] transition hover:border-[#0FF7D0]/70 hover:bg-[#0FF7D0]/10 sm:flex-none"
-                  >
-                    {alert.status === 'active' ? 'Pause' : 'Resume'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => removeAlert(alert.id)}
-                    className="h-9 flex-1 rounded-full bg-[#111111] px-4 text-[11px] font-bold uppercase tracking-[0.14em] text-white transition hover:bg-red-600 sm:flex-none"
-                  >
-                    Remove
-                  </button>
-                </div>
+        <div className="mt-5 space-y-6">
+          <div>
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <h3 className="text-sm font-bold uppercase tracking-[0.18em] text-white/72">Active Alerts</h3>
+              <span className="rounded-full bg-white/8 px-2.5 py-1 text-[10px] font-bold text-white/52">{activeAlerts.length}</span>
+            </div>
+            {activeAlerts.length === 0 ? (
+              <p className="rounded-[22px] border border-white/8 bg-white/[0.045] p-4 text-sm font-medium text-white/52">No active price alerts yet.</p>
+            ) : (
+              <div className="grid gap-4 xl:grid-cols-2">
+                {activeAlerts.map((alert) => (
+                  <AlertCard key={alert.id} alert={alert} onStatusChange={updateStatus} onRemove={removeAlert} />
+                ))}
               </div>
-            </article>
-          ))}
+            )}
+          </div>
+
+          <div>
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <h3 className="text-sm font-bold uppercase tracking-[0.18em] text-white/72">Triggered Alerts</h3>
+              <span className="rounded-full bg-white/8 px-2.5 py-1 text-[10px] font-bold text-white/52">{triggeredAlerts.length}</span>
+            </div>
+            {triggeredAlerts.length === 0 ? (
+              <p className="rounded-[22px] border border-white/8 bg-white/[0.045] p-4 text-sm font-medium text-white/52">No triggered alerts yet.</p>
+            ) : (
+              <div className="grid gap-4 xl:grid-cols-2">
+                {triggeredAlerts.map((alert) => (
+                  <AlertCard key={alert.id} alert={alert} onStatusChange={updateStatus} onRemove={removeAlert} />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </section>

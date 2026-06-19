@@ -62,6 +62,8 @@ export default async function HistoryPage() {
   const sessions = sessionsResult.status === 'fulfilled' ? sessionsResult.value : []
   const priceAlerts = priceAlertsResult.status === 'fulfilled' ? priceAlertsResult.value : []
   const priceAlertsError = priceAlertsResult.status === 'rejected'
+  const activeAlertCount = priceAlerts.filter((alert) => alert.status === 'active').length
+  const triggeredAlertCount = priceAlerts.filter((alert) => alert.status === 'triggered').length
   const topResultImagesByQuery = new Map(
     sessions
       .filter((session) => session.query && session.results[0]?.image)
@@ -69,29 +71,31 @@ export default async function HistoryPage() {
   )
 
   return (
-    <main className="min-h-screen bg-[#f4f5ef] px-4 py-10 text-[#111111] sm:px-6">
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+    <main className="min-h-screen bg-[#f4f5ef] px-4 py-8 text-[#111111] sm:px-6 sm:py-10">
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-6 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <Link href="/" className="group mb-3 inline-flex items-center gap-2 text-sm font-semibold text-[#111111]/62 transition-colors hover:text-[#0CC6A6]">
+            <Link href="/" className="group mb-4 inline-flex items-center gap-2 text-sm font-semibold text-[#111111]/62 transition-colors hover:text-[#0CC6A6]">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-hover:-translate-x-1"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
               Back to Home
             </Link>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#0CC6A6]">PartsSeekr account</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-[#0CC6A6]">PartsSeekr Account</p>
             <h1 className="mt-1 text-4xl font-bold tracking-tight text-[#111111] sm:text-5xl">My Searches</h1>
+            <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-[#262626]/58 sm:text-base">
+              Manage saved searches, monitor price alerts, and track part history.
+            </p>
           </div>
-          <div className="flex flex-col items-start gap-2 sm:items-end">
-            <div className="flex items-center gap-3 rounded-[22px] bg-white/78 px-5 py-3 shadow-sm ring-1 ring-black/5">
-              <div className="flex flex-col">
-                <span className="text-[10px] font-bold uppercase leading-none tracking-[0.18em] text-[#262626]/42">Total Searches</span>
-                <span className="mt-1 text-2xl font-bold text-[#111111]">{sessions.length}</span>
+          <div className="flex flex-wrap gap-2 sm:justify-end">
+            {[
+              [`${sessions.length}`, sessions.length === 1 ? 'Search' : 'Searches'],
+              [`${activeAlertCount}`, activeAlertCount === 1 ? 'Alert' : 'Alerts'],
+              [`${triggeredAlertCount}`, 'Triggered']
+            ].map(([value, label]) => (
+              <div key={label} className="rounded-full bg-white/86 px-4 py-2 shadow-sm ring-1 ring-black/5">
+                <span className="text-lg font-bold text-[#111111]">{value}</span>
+                <span className="ml-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#262626]/45">{label}</span>
               </div>
-              <div className="mx-2 h-8 w-px bg-[#262626]/8" />
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#0FF7D0]/14 text-[#0CC6A6]">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-              </div>
-            </div>
-            {sessions.length > 0 && <ClearHistoryButton />}
+            ))}
           </div>
         </div>
 
@@ -108,25 +112,28 @@ export default async function HistoryPage() {
           }))}
         />
 
-        <section className="border-t border-[#262626]/8 pt-8">
-          <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <section className="pt-2">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#262626]/45">Search History</p>
-              <h2 className="mt-1 text-2xl font-bold tracking-tight text-[#111111]">Saved searches</h2>
+              <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#0CC6A6]">Search History</p>
+              <h2 className="mt-1 text-2xl font-bold tracking-tight text-[#111111]">Saved Searches</h2>
             </div>
-            {sessions.length > 0 && (
-              <p className="text-sm font-medium text-[#262626]/50">Recent completed part searches</p>
-            )}
+            <div className="flex flex-wrap items-center gap-3">
+              {sessions.length > 0 && (
+                <p className="text-sm font-medium text-[#262626]/50">Recent completed part searches</p>
+              )}
+              {sessions.length > 0 && <ClearHistoryButton />}
+            </div>
           </div>
 
           {sessions.length === 0 ? (
-          <div className="fade-up rounded-[30px] bg-white/78 p-12 text-center shadow-sm ring-1 ring-black/5 sm:p-16">
+          <div className="fade-up rounded-[30px] bg-white/78 p-10 text-center shadow-sm ring-1 ring-black/5 sm:p-12">
             <div className="mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-full bg-[#0FF7D0]/12 text-[#0CC6A6]">
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
             </div>
-            <h2 className="mb-3 text-2xl font-bold text-[#111111]">No searches yet</h2>
+            <h2 className="mb-3 text-2xl font-bold text-[#111111]">No saved searches yet.</h2>
             <p className="mx-auto mb-10 max-w-sm text-sm leading-relaxed text-[#262626]/55">
-              Your recent vehicle part searches will appear here once you start exploring.
+              Search for a part number to begin.
             </p>
             <Link 
               href="/" 
@@ -137,15 +144,15 @@ export default async function HistoryPage() {
             </Link>
           </div>
         ) : (
-          <div className="grid gap-3 sm:gap-4">
+          <div className="grid gap-3">
             {sessions.map((session, idx) => (
               <Link 
                 key={session.id} 
                 href={`/results/${session.id}`}
-                className="fade-up group relative flex items-center gap-4 rounded-[24px] bg-white/82 p-4 shadow-sm ring-1 ring-black/5 transition-all hover:-translate-y-0.5 hover:shadow-[0_22px_60px_-42px_rgba(17,17,17,0.65)] hover:ring-[#0FF7D0]/45 sm:gap-5"
+                className="fade-up group relative grid gap-3 rounded-[24px] bg-white/86 p-3 shadow-sm ring-1 ring-black/5 transition-all hover:-translate-y-0.5 hover:shadow-[0_22px_60px_-42px_rgba(17,17,17,0.65)] hover:ring-[#0FF7D0]/45 sm:grid-cols-[88px_minmax(0,1fr)_auto] sm:items-center sm:gap-4"
                 style={{ animationDelay: `${idx * 50}ms` }}
               >
-                <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-[18px] bg-[#f8f9f6] shadow-inner ring-1 ring-black/5 transition-transform duration-500 group-hover:scale-[1.03] sm:h-24 sm:w-24">
+                <div className="relative h-24 w-full overflow-hidden rounded-[18px] bg-[#f8f9f6] shadow-inner ring-1 ring-black/5 transition-transform duration-500 group-hover:scale-[1.02] sm:h-[88px] sm:w-[88px]">
                   <Image 
                     src={normalizeImageUrl(session.results[0]?.image || session.imageUrl)} 
                     alt={session.query || 'Search image'} 
@@ -156,34 +163,29 @@ export default async function HistoryPage() {
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
                 </div>
                 
-                <div className="min-w-0 flex-1 pr-1 sm:pr-4">
-                  <div className="mb-1.5 flex flex-wrap items-center gap-2">
+                <div className="min-w-0">
+                  <div className="mb-2 flex flex-wrap items-center gap-2">
                     <span className="inline-flex items-center rounded-full bg-[#0FF7D0]/12 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[#0CC6A6]">
                       {session.query ? 'Text Search' : 'Visual Search'}
                     </span>
-                    <span className="text-[11px] font-medium text-[#262626]/42">
-                      {new Date(session.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                    </span>
                   </div>
-                  <h3 className="mb-2 truncate text-base font-bold text-[#111111] transition-colors group-hover:text-[#0CC6A6] sm:text-lg">
+                  <h3 className="truncate text-lg font-bold text-[#111111] transition-colors group-hover:text-[#0CC6A6]">
                     {session.query || 'Parts Match Analysis'}
                   </h3>
-                  <div className="flex flex-wrap items-center gap-4">
-                    <div className="flex items-center gap-1.5 text-[13px] font-semibold text-[#262626]/55">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[#0CC6A6]"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
-                      {session.results.length} Matches
-                    </div>
+                  <div className="mt-2 grid gap-1 text-xs font-semibold text-[#262626]/55 sm:grid-cols-3">
+                    <span>{session.query ? 'Text Search' : 'Visual Search'}</span>
+                    <span>{new Date(session.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                    <span>{session.results.length} {session.results.length === 1 ? 'Match' : 'Matches'} Found</span>
                     {session.country && (
-                      <div className="flex items-center gap-1.5 text-[13px] font-semibold uppercase tracking-wider text-[#262626]/55">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[#0CC6A6]"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-                        {session.country}
-                      </div>
+                      <span className="uppercase tracking-wider text-[#262626]/45">{session.country}</span>
                     )}
                   </div>
                 </div>
                 
-                <div className="hidden h-11 w-11 items-center justify-center rounded-full bg-[#f8f9f6] text-[#262626]/25 transition-all duration-300 group-hover:bg-[#111111] group-hover:text-white sm:flex">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                <div className="flex sm:justify-end">
+                  <span className="inline-flex h-10 items-center justify-center rounded-full bg-[#111111] px-5 text-[11px] font-bold uppercase tracking-[0.14em] text-white transition group-hover:bg-[#0FF7D0] group-hover:text-[#07181b]">
+                    View Results
+                  </span>
                 </div>
               </Link>
             ))}
