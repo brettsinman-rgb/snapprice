@@ -263,7 +263,7 @@ export default async function Home() {
             </section>
           )}
           {user && previousSearches.length > 0 && (
-            <section className="rounded-3xl border border-[#0FF7D0] bg-white/80 px-6 py-5 shadow-soft fade-up fade-up-delay-1">
+            <section className="rounded-3xl border border-[#0FF7D0] bg-white/80 px-4 py-5 shadow-soft fade-up fade-up-delay-1 sm:px-6">
               <div className="mb-4 flex items-end justify-between gap-4">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#262626]/70">
@@ -274,24 +274,24 @@ export default async function Home() {
                   </h2>
                 </div>
               </div>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+              <div className="grid min-w-0 grid-cols-2 gap-3 max-[339px]:grid-cols-1 md:grid-cols-3 md:gap-4 lg:grid-cols-5">
                 {previousSearches.map((item) => (
                   <article
                     key={item.id}
-                    className="flex h-full flex-col overflow-hidden rounded-2xl border border-[#0FF7D0] bg-white"
+                    className="flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border border-[#0FF7D0] bg-white transition hover:-translate-y-0.5 hover:shadow-[0_18px_45px_-34px_rgba(17,17,17,0.75)]"
                   >
-                    <div className="relative h-32 w-full bg-white">
+                    <div className="relative h-24 w-full bg-white max-[339px]:h-36 sm:h-32">
                       <Image
                         src={item.image}
                         alt={item.title}
                         fill
-                        sizes="(max-width: 768px) 100vw, 25vw"
+                        sizes="(max-width: 339px) 100vw, (max-width: 767px) 50vw, (max-width: 1023px) 33vw, 20vw"
                         className="object-cover"
                       />
                     </div>
-                    <div className="flex flex-1 flex-col gap-2 p-3">
-                      <h3 className="line-clamp-2 text-sm font-semibold text-[#262626]">{item.title}</h3>
-                      <p className="text-[10px] text-[#262626]/70">
+                    <div className="flex min-w-0 flex-1 flex-col gap-2 p-2.5 max-[339px]:p-3 sm:p-3">
+                      <h3 className="min-h-[40px] text-[12px] font-semibold leading-snug text-[#262626] line-clamp-2 sm:text-sm">{item.title}</h3>
+                      <p className="text-[10px] font-medium text-[#262626]/62">
                         {new Intl.DateTimeFormat(undefined, {
                           month: 'short',
                           day: 'numeric',
@@ -302,7 +302,7 @@ export default async function Home() {
                         href={item.productUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="mt-auto inline-flex items-center justify-center rounded-full bg-[#0FF7D0]/90 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#07181b] transition hover:bg-[#0FF7D0]"
+                        className="mt-auto inline-flex min-h-11 items-center justify-center rounded-full bg-[#0FF7D0]/90 px-2.5 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#07181b] transition hover:bg-[#0FF7D0] sm:px-4 sm:text-[11px] sm:tracking-[0.18em]"
                       >
                         View listing
                       </a>
