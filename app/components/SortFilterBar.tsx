@@ -42,10 +42,10 @@ export default function SortFilterBar({
     ? regionOptions.find((region) => region.id === selectedRegions[0])
     : null;
   const regionLabel = allRegionsSelected
-    ? 'Regions: All'
+    ? 'REGIONS: ALL'
     : selectedRegion
-      ? `Region: ${selectedRegion.label}`
-      : `Regions: ${selectedCount} selected`;
+      ? `REGIONS: ${selectedRegion.label.toUpperCase()}`
+      : `REGIONS: ${selectedCount} SELECTED`;
 
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
@@ -146,7 +146,7 @@ export default function SortFilterBar({
               aria-controls="region-filter-menu"
               aria-expanded={regionsOpen}
               onClick={() => setRegionsOpen((open) => !open)}
-              className="flex h-10 max-w-full items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-4 text-xs font-semibold text-white hover:border-[#0FF7D0]/35 sm:px-5"
+              className="flex h-10 max-w-full items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white hover:border-[#0FF7D0]/35 sm:px-5 sm:tracking-[0.18em]"
             >
               <span className="truncate">{regionLabel}</span>
               <span aria-hidden="true" className={clsx('text-[#0CC6A6] transition', regionsOpen && 'rotate-180')}>⌄</span>
@@ -163,14 +163,14 @@ export default function SortFilterBar({
                     onClick={() => setSelectedRegions(allRegionIds)}
                     className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#0FF7D0] hover:text-white"
                   >
-                    Select all
+                    SELECT ALL
                   </button>
                   <button
                     type="button"
                     onClick={() => setSelectedRegions([])}
                     className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/55 hover:text-[#0FF7D0]"
                   >
-                    Clear all
+                    CLEAR ALL
                   </button>
                 </div>
                 <div className="mt-2 grid gap-1">
