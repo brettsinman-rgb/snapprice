@@ -126,16 +126,6 @@ h4 {
   }
 }
 
-.ai-sparkles {
-  display: flex;
-  height: 16px;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  margin-bottom: 2px;
-  color: #0FF7D0;
-}
-
 .ai-input-sparkles {
   pointer-events: none;
   position: absolute;
