@@ -140,7 +140,7 @@ h4 {
   pointer-events: none;
   position: absolute;
   top: 50%;
-  right: 16px;
+  left: 16px;
   display: flex;
   align-items: center;
   gap: 4px;
