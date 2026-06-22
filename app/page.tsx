@@ -228,8 +228,8 @@ export default async function Home() {
                     <path d="M12 1.5c.65 6.42 4.08 9.85 10.5 10.5-6.42.65-9.85 4.08-10.5 10.5C11.35 16.08 7.92 12.65 1.5 12 7.92 11.35 11.35 7.92 12 1.5Z" />
                   </svg>
                 </div>
-                <p className="text-sm font-normal leading-6 text-[#262626]/70 md:text-[15px]">
-                  Just tell <span className="font-bold text-[#0FF7D0]">AI Parts Seekr</span> what you&apos;re looking for. Our AI understands and starts searching verified listings and sorts the best prices by value.
+                <p className="text-sm font-normal leading-6 text-[#111111] md:text-[15px]">
+                  <span className="ai-highlight">Just tell <strong>AI Parts Seekr</strong>{' '}what you&apos;re looking for. Our AI understands and starts searching verified listings and sorts the best prices by value.</span>
                 </p>
               </div>
             </div>
