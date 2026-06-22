@@ -136,6 +136,18 @@ h4 {
   color: #0FF7D0;
 }
 
+.ai-input-sparkles {
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #0FF7D0;
+  transform: translateY(-50%);
+}
+
 .ai-highlight {
   background: #0FF7D0;
   border-radius: 2px;

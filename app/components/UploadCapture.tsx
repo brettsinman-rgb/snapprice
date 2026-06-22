@@ -10,6 +10,7 @@ export default function UploadCapture() {
   const [fileName, setFileName] = useState('');
   const [preview, setPreview] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [isInputFocused, setIsInputFocused] = useState(false);
   const [manufacturer, setManufacturer] = useState('Any');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -226,13 +227,30 @@ export default function UploadCapture() {
         <div className="flex min-w-0 flex-col gap-2">
           <label className="flex flex-col gap-0.5">
             <span className="text-[13px] font-semibold uppercase tracking-[0.12em] text-[#262626]/70">PART NAME OR OEM NUMBER</span>
-            <input
-              type="text"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="e.g. Audi A6 hydraulic pump or 4Z7323167"
-              className="h-11 w-full rounded-[22px] bg-white px-4 text-[15px] font-medium text-[#262626] shadow-[0_10px_32px_-28px_rgba(38,38,38,0.7)] ring-1 ring-black/10 outline-none transition placeholder:font-normal placeholder:text-[#262626]/50 focus:shadow-[0_16px_42px_-32px_rgba(15,247,208,0.8)] focus:ring-2 focus:ring-[#0FF7D0]/50"
-            />
+            <div className="relative">
+              <input
+                type="text"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                onFocus={() => setIsInputFocused(true)}
+                onBlur={() => setIsInputFocused(false)}
+                placeholder="e.g. Audi A6 hydraulic pump or 4Z7323167"
+                className="h-11 w-full rounded-[22px] bg-white py-0 pl-4 pr-16 text-[15px] font-medium text-[#262626] shadow-[0_10px_32px_-28px_rgba(38,38,38,0.7)] ring-1 ring-black/10 outline-none transition placeholder:font-normal placeholder:text-[#262626]/50 focus:shadow-[0_16px_42px_-32px_rgba(15,247,208,0.8)] focus:ring-2 focus:ring-[#0FF7D0]/50"
+              />
+              {!query && !isInputFocused && (
+                <span className="ai-input-sparkles" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" className="ai-sparkle ai-sparkle-small">
+                    <path d="M12 1.5c.65 6.42 4.08 9.85 10.5 10.5-6.42.65-9.85 4.08-10.5 10.5C11.35 16.08 7.92 12.65 1.5 12 7.92 11.35 11.35 7.92 12 1.5Z" />
+                  </svg>
+                  <svg viewBox="0 0 24 24" className="ai-sparkle ai-sparkle-large">
+                    <path d="M12 1.5c.65 6.42 4.08 9.85 10.5 10.5-6.42.65-9.85 4.08-10.5 10.5C11.35 16.08 7.92 12.65 1.5 12 7.92 11.35 11.35 7.92 12 1.5Z" />
+                  </svg>
+                  <svg viewBox="0 0 24 24" className="ai-sparkle ai-sparkle-medium">
+                    <path d="M12 1.5c.65 6.42 4.08 9.85 10.5 10.5-6.42.65-9.85 4.08-10.5 10.5C11.35 16.08 7.92 12.65 1.5 12 7.92 11.35 11.35 7.92 12 1.5Z" />
+                  </svg>
+                </span>
+              )}
+            </div>
           </label>
 
           <div className="grid gap-2.5 md:grid-cols-[minmax(0,360px)_auto] md:items-end md:justify-start">
