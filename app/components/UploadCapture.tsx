@@ -235,7 +235,7 @@ export default function UploadCapture() {
                 onFocus={() => setIsInputFocused(true)}
                 onBlur={() => setIsInputFocused(false)}
                 placeholder="Ask AI Parts Seekr about any part number, vehicle or component…"
-                className={`h-11 w-full rounded-[22px] bg-white py-0 pr-4 text-[15px] font-medium text-[#262626] shadow-[0_10px_32px_-28px_rgba(38,38,38,0.7)] ring-1 ring-black/10 outline-none transition-[padding,box-shadow] duration-150 placeholder:font-normal placeholder:text-[#262626]/50 focus:shadow-[0_16px_42px_-32px_rgba(15,247,208,0.8)] focus:ring-2 focus:ring-[#0FF7D0]/50 ${!query && !isInputFocused ? 'pl-[70px]' : 'pl-4'}`}
+                className={`h-11 w-full rounded-[22px] bg-white py-0 pr-4 text-[15px] font-medium text-[#262626] shadow-[0_10px_32px_-28px_rgba(38,38,38,0.7)] ring-1 ring-black/10 outline-none transition-[padding,box-shadow] duration-150 placeholder:font-normal placeholder:text-[#262626]/50 focus:shadow-[0_16px_42px_-32px_rgba(15,247,208,0.8)] focus:ring-2 focus:ring-[#0FF7D0]/50 ${!query && !isInputFocused ? 'pl-[77px]' : 'pl-4'}`}
               />
               {!query && !isInputFocused && (
                 <span className="ai-input-sparkles" aria-hidden="true">
